@@ -5,9 +5,9 @@ name: Java CI with Gradle for Iris 1.17+
 
 on:
   push:
-    branches: [ master ]
+    branches: [ actions ]
   pull_request:
-    branches: [ master ]
+    branches: [ actions ]
 
 jobs:
   build:
