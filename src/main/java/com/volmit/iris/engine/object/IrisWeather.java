@@ -16,21 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.lighting;
+package com.volmit.iris.engine.object;
 
-import com.bergerkiller.bukkit.common.collections.BlockFaceSet;
+import com.volmit.iris.engine.object.annotations.Desc;
+import lombok.Data;
+import org.bukkit.World;
 
-/**
- * Maps {@link BlockFaceSet} values to a 16x16x16 area of blocks
- */
-public class BlockFaceSetSection {
-    private final byte[] _maskData = new byte[4096];
+@Desc("Represents a weather type")
+public enum IrisWeather {
+    @Desc("Represents when weather is not causing downfall")
+    NONE,
 
-    public void set(int x, int y, int z, BlockFaceSet faces) {
-        _maskData[(y << 8) | (z << 4) | x] = (byte) faces.mask();
-    }
+    @Desc("Represents rain or snow")
+    DOWNFALL,
 
-    public BlockFaceSet get(int x, int y, int z) {
-        return BlockFaceSet.byMask(_maskData[(y << 8) | (z << 4) | x]);
+    @Desc("Represents rain or snow with thunder")
+    DOWNFALL_WITH_THUNDER,
+
+    @Desc("Any weather")
+    ANY;
+
+    public boolean is(World world)
+    {
+        return switch(this)
+        {
+            case NONE -> world.isClearWeather();
+            case DOWNFALL -> world.hasStorm();
+            case DOWNFALL_WITH_THUNDER -> world.hasStorm() && world.isThundering();
+            case ANY -> true;
+        };
     }
 }

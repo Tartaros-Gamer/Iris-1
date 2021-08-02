@@ -30,9 +30,12 @@ import com.volmit.iris.util.board.ScoreDirection;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.RollingSequence;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -135,14 +138,15 @@ public class IrisBoardManager implements BoardProvider, Listener {
         if (engine != null) {
             v.add("&7&m------------------");
             KList<IrisFeaturePositional> f = new KList<>();
-            engine.getFramework().getEngineParallax().forEachFeature(x, z, f::add);
-
+            f.add(engine.getFramework().getEngineParallax().forEachFeature(x, z));
             v.add(C.AQUA + "Engine" + C.GRAY + ": " + engine.getName() + " " + engine.getMinHeight() + "-" + engine.getMaxHeight());
             v.add(C.AQUA + "Region" + C.GRAY + ": " + engine.getRegion(x, z).getName());
             v.add(C.AQUA + "Biome" + C.GRAY + ":  " + engine.getBiome(x, y, z).getName());
             v.add(C.AQUA + "Height" + C.GRAY + ": " + Math.round(engine.getHeight(x, z)));
             v.add(C.AQUA + "Slope" + C.GRAY + ":  " + Form.f(engine.getFramework().getComplex().getSlopeStream().get(x, z), 2));
             v.add(C.AQUA + "Features " + C.GRAY + ": " + Form.f(f.size()));
+            v.add(C.AQUA + "R:  " + C.GRAY + ": " + engine.getFramework().getComplex().getRegionIDStream().get(x, z).toString().replaceAll("\\Q-\\E", ""));
+            v.add(C.AQUA + "B:  " + C.GRAY + ": " + engine.getFramework().getComplex().getBaseBiomeIDStream().get(x, z).toString().replaceAll("\\Q-\\E", ""));
         }
 
         if (Iris.jobCount() > 0) {

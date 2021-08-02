@@ -19,13 +19,17 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.RegistryListEntity;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.scheduling.J;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,7 +43,7 @@ import org.bukkit.entity.Entity;
 @AllArgsConstructor
 @Desc("Represents an entity spawn during initial chunk generation")
 @Data
-public class IrisEntityInitialSpawn {
+public class IrisEntitySpawn implements IRare {
     @RegistryListEntity
     @Required
     @Desc("The entity")
@@ -57,20 +61,25 @@ public class IrisEntityInitialSpawn {
     @Desc("The max of this entity to spawn")
     private int maxSpawns = 1;
 
+    private transient IrisSpawner referenceSpawner;
     private final transient AtomicCache<RNG> rng = new AtomicCache<>();
     private final transient AtomicCache<IrisEntity> ent = new AtomicCache<>();
 
-    public void spawn(Engine gen, Chunk c, RNG rng) {
-        int spawns = rng.i(1, rarity) == 1 ? rng.i(minSpawns, maxSpawns) : 0;
+    public boolean spawn(Engine gen, Chunk c, RNG rng) {
+        int spawns = minSpawns == maxSpawns ? minSpawns : rng.i(Math.min(minSpawns, maxSpawns), Math.max(minSpawns, maxSpawns));
 
         if (spawns > 0) {
             for (int i = 0; i < spawns; i++) {
                 int x = (c.getX() * 16) + rng.i(15);
                 int z = (c.getZ() * 16) + rng.i(15);
-                int h = gen.getHeight(x, z) + gen.getMinHeight();
+                int h = c.getWorld().getHighestBlockYAt(x, z);
                 spawn100(gen, new Location(c.getWorld(), x, h, z));
             }
+
+            return true;
         }
+
+        return false;
     }
 
     public IrisEntity getRealEntity(Engine g) {
@@ -91,10 +100,17 @@ public class IrisEntityInitialSpawn {
 
     private Entity spawn100(Engine g, Location at) {
         try {
-            return getRealEntity(g).spawn(g, at.clone().add(0.5, 1, 0.5), rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+            Location l = at.clone().add(0.5, 1, 0.5);
+            Entity e = getRealEntity(g).spawn(g, l, rng.aquire(() -> new RNG(g.getTarget().getWorld().seed() + 4)));
+            if(e != null)
+            {
+                Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
+            }
+
+            return e;
         } catch (Throwable e) {
             Iris.reportError(e);
-            Iris.debug("Failed to retrieve real entity @ " + at);
+            Iris.error("      Failed to retrieve real entity @ " + at);
             return null;
         }
     }

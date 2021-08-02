@@ -438,6 +438,7 @@ public class IrisProject {
         settings.put("json.maxItemsComputed", 30000);
         JSONArray schemas = new JSONArray();
         IrisDataManager dm = new IrisDataManager(getPath());
+        // TODO Cleanup
         schemas.put(getSchemaEntry(IrisDimension.class, dm, "/dimensions/*.json", "/dimensions/*/*.json", "/dimensions/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisEntity.class, dm, "/entities/*.json", "/entities/*/*.json", "/entities/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisBiome.class, dm, "/biomes/*.json", "/biomes/*/*.json", "/biomes/*/*/*.json"));
@@ -449,6 +450,7 @@ public class IrisProject {
         schemas.put(getSchemaEntry(IrisJigsawStructure.class, dm, "/jigsaw-structures/*.json", "/jigsaw-structures/*/*/*.json", "/jigsaw-structures/*/*.json"));
         schemas.put(getSchemaEntry(IrisBlockData.class, dm, "/blocks/*.json", "/blocks/*/*.json", "/blocks/*/*/*.json"));
         schemas.put(getSchemaEntry(IrisLootTable.class, dm, "/loot/*.json", "/loot/*/*.json", "/loot/*/*/*.json"));
+        schemas.put(getSchemaEntry(IrisSpawner.class, dm, "/spawners/*.json", "/spawners/*/*.json", "/spawners/*/*/*.json"));
         settings.put("json.schemas", schemas);
         ws.put("settings", settings);
 
@@ -474,6 +476,7 @@ public class IrisProject {
         KSet<IrisRegion> regions = new KSet<>();
         KSet<IrisBiome> biomes = new KSet<>();
         KSet<IrisEntity> entities = new KSet<>();
+        KSet<IrisSpawner> spawners = new KSet<>();
         KSet<IrisGenerator> generators = new KSet<>();
         KSet<IrisLootTable> loot = new KSet<>();
         KSet<IrisBlockData> blocks = new KSet<>();
@@ -503,13 +506,9 @@ public class IrisProject {
         });
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
-        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
         regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
-        biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
-        biomes.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-        regions.forEach((r) -> r.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-        dimension.getEntitySpawnOverrides().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
-        biomes.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
+        regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
+        dimension.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp)));
 
         for (int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++) {
             biomes.copy().forEach((r) -> {
@@ -521,8 +520,10 @@ public class IrisProject {
             });
         }
 
-        regions.forEach((r) -> r.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity()))));
-        dimension.getEntityInitialSpawns().forEach((sp) -> entities.add(dm.getEntityLoader().load(sp.getEntity())));
+        biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
+        biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
+        biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
+        spawners.forEach((i) -> i.getSpawns().forEach((j) -> entities.add(dm.getEntityLoader().load(j.getEntity()))));
         KMap<String, String> renameObjects = new KMap<>();
         String a;
         StringBuilder b = new StringBuilder();

@@ -141,8 +141,17 @@ public class B {
             if (bb != null) {
                 return bb;
             }
+            BlockData bx = null;
 
-            BlockData bx = Bukkit.createBlockData(ix);
+            if(ix.startsWith("oraxen:") && Iris.linkOraxen.supported())
+            {
+                bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
+            }
+
+            if(bx == null)
+            {
+                bx = Bukkit.createBlockData(ix);
+            }
 
             if (bx instanceof Leaves) {
                 ((Leaves) bx).setPersistent(true);
@@ -398,6 +407,8 @@ public class B {
 
         f = mm.equals(Material.GRASS)
                 || mm.equals(Material.TALL_GRASS)
+                || mm.equals(Material.FERN)
+                || mm.equals(Material.LARGE_FERN)
                 || mm.equals(B.getMaterial("CORNFLOWER"))
                 || mm.equals(Material.SUNFLOWER)
                 || mm.equals(Material.CHORUS_FLOWER)
@@ -468,6 +479,7 @@ public class B {
 
     public static boolean isFoliagePlantable(BlockData d) {
         return d.getMaterial().equals(Material.GRASS_BLOCK)
+                || d.getMaterial().equals(Material.ROOTED_DIRT)
                 || d.getMaterial().equals(Material.DIRT)
                 || d.getMaterial().equals(Material.COARSE_DIRT)
                 || d.getMaterial().equals(Material.PODZOL);
@@ -476,6 +488,7 @@ public class B {
     public static boolean isFoliagePlantable(Material d) {
         return d.equals(Material.GRASS_BLOCK)
                 || d.equals(Material.DIRT)
+                || d.equals(Material.ROOTED_DIRT)
                 || d.equals(Material.COARSE_DIRT)
                 || d.equals(Material.PODZOL);
     }
@@ -525,6 +538,14 @@ public class B {
         for (Material i : Material.values()) {
             String v = i.name().toLowerCase().trim();
             bt.add(v);
+        }
+
+        if(Iris.linkOraxen.supported())
+        {
+            for(String i : Iris.linkOraxen.getItemTypes())
+            {
+                bt.add("oraxen:" + i);
+            }
         }
 
         return bt.toArray(new String[0]);

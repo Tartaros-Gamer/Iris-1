@@ -16,31 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.core.link;
+package com.volmit.iris.engine.object.annotations;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.plugin.Plugin;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-public class BKLink {
-    public BKLink() {
+import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-    }
+@Retention(RUNTIME)
+@Target({PARAMETER, TYPE, FIELD})
+public @interface RegistryListSpawner {
 
-    public void updateBlock(Block b) {
-        BlockData d = b.getBlockData();
-        b.setType(Material.AIR, false);
-        b.setBlockData(d, true);
-    }
-
-    public boolean supported() {
-        return getBK() != null;
-    }
-
-    public Plugin getBK() {
-
-        return Bukkit.getPluginManager().getPlugin("BKCommonLib");
-    }
 }

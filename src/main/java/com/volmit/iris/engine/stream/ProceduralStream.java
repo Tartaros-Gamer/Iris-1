@@ -98,8 +98,20 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new AddingStream<>(this, a);
     }
 
+    default ProceduralStream<T> add(ProceduralStream<Double> a) {
+        return add2D((x, z) -> a.get(x, z));
+    }
+
+    default ProceduralStream<T> subtract(ProceduralStream<Double> a) {
+        return subtract2D((x, z) -> a.get(x, z));
+    }
+
     default ProceduralStream<T> add2D(Function2<Double, Double, Double> a) {
         return new AddingStream<>(this, a);
+    }
+
+    default ProceduralStream<T> subtract2D(Function2<Double, Double, Double> a) {
+        return new SubtractingStream<T>(this, a);
     }
 
     default ProceduralStream<T> add(double a) {
@@ -305,9 +317,13 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     @SuppressWarnings("unchecked")
     default <V> ProceduralStream<V> selectRarity(V... types) {
         KList<V> rarityTypes = new KList<>();
+        int totalRarity = 0;
+        for (V i : types) {
+            totalRarity += IRare.get(i);
+        }
 
         for (V i : types) {
-            rarityTypes.addMultiple(i, IRare.get(i));
+            rarityTypes.addMultiple(i, totalRarity / IRare.get(i));
         }
 
         return new SelectionStream<V>(this, rarityTypes);

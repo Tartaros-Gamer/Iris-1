@@ -19,30 +19,36 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.util.format.Form;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
 
-@Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Desc("Translate objects")
 @Data
-public class IrisTerrainIsland {
-    @Desc("The height range")
-    private IrisStyledRange height = new IrisStyledRange().setMin(60).setMax(160);
+@Desc("Represents a count of something per time duration")
+public class IrisRate {
+    @Desc("The amount of things. Leave 0 for infinite (meaning always spawn whenever)")
+    private int amount = 0;
 
-    @Desc("How deep the island can get")
-    private IrisStyledRange islandDepth = new IrisStyledRange().setMin(60).setMax(160);
+    @Desc("The time interval. Leave blank for infinite 0 (meaning always spawn all the time)")
+    private IrisDuration per = new IrisDuration();
 
-    @MinNumber(1)
-    @MaxNumber(10000)
-    @Desc("How often are regions islands instead of nothing?")
-    private double islandChance = 0.5;
+    public String toString()
+    {
+        return Form.f(amount) + "/" + per;
+    }
 
-    @Desc("Interpolate the edges of islands")
-    private IrisInterpolator islandEdgeInterpolator = new IrisInterpolator();
+    public long getInterval()
+    {
+        long t = per.getMilliseconds() / (amount == 0 ? 1 : amount);
+        return Math.abs(t <= 0 ? 1 : t);
+    }
+
+    public ChronoLatch toChronoLatch()
+    {
+        return new ChronoLatch(getInterval());
+    }
 }

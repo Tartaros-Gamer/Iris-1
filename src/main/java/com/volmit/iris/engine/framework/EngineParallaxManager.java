@@ -193,19 +193,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             getEngine().getMetrics().getParallaxInsert().put(p.getMilliseconds());
         } catch (Throwable e) {
             Iris.reportError(e);
-            Iris.error("Failed to insert parallax at chunk " + (x >> 4) + " " + (z >> 4));
+            Iris.error("Failed to insert parallax at chunk " + x + " " + z);
             e.printStackTrace();
-        }
-    }
-
-    @BlockCoordinates
-    default void forEachFeature(double x, double z, Consumer<IrisFeaturePositional> f) {
-        if (!getEngine().getDimension().hasFeatures(getEngine())) {
-            return;
-        }
-
-        for (IrisFeaturePositional ipf : forEachFeature(x, z)) {
-            f.accept(ipf);
         }
     }
 
@@ -224,9 +213,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
 
         int s = (int) Math.ceil(getParallaxSize() / 2D);
+
         int i, j;
-        int cx = (int) x >> 4;
-        int cz = (int) z >> 4;
+        int cx = (int)x >> 4;
+        int cz = (int)z >> 4;
 
         for (i = -s; i <= s; i++) {
             for (j = -s; j <= s; j++) {
@@ -249,6 +239,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         return pos;
     }
 
+    @ChunkCoordinates
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     default void generateParallaxArea(int x, int z) {
         if (!getEngine().getDimension().isPlaceObjects()) {
@@ -272,9 +263,9 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
                     if (!getParallaxAccess().isFeatureGenerated(xx, zz)) {
                         getParallaxAccess().setFeatureGenerated(xx, zz);
                         burst.queue(() -> {
-                            RNG rng = new RNG(Cache.key(xx, zz)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
+                            RNG rng = new RNG(Cache.key(xx, zz) + getEngine().getTarget().getWorld().seed());
                             IrisRegion region = getComplex().getRegionStream().get(xxx, zzz);
-                            IrisBiome biome = getComplex().getTrueBiomeStream().get(xxx, zzz);
+                            IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xxx, zzz);
                             generateParallaxFeatures(rng, xx, zz, region, biome);
                         });
                     }
@@ -324,9 +315,10 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         }
     }
 
+    @ChunkCoordinates
     default KList<Runnable> generateParallaxVacuumLayer(int x, int z) {
         KList<Runnable> after = new KList<>();
-        if (getParallaxAccess().isParallaxGenerated(x >> 4, z >> 4)) {
+        if (getParallaxAccess().isParallaxGenerated(x, z)) {
             return after;
         }
 
@@ -335,7 +327,7 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
             int zz = z << 4;
             RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
             IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
-            IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
+            IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
             after.addAll(generateParallaxJigsaw(rng, x, z, biome, region));
             generateParallaxSurface(rng, x, z, biome, region, true);
             generateParallaxMutations(rng, x, z, true);
@@ -353,12 +345,13 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         int zz = z << 4;
         getParallaxAccess().setParallaxGenerated(x, z);
         RNG rng = new RNG(Cache.key(x, z)).nextParallelRNG(getEngine().getTarget().getWorld().seed());
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(xx + 8, zz + 8);
+        IrisBiome biome = getComplex().getTrueBiomeStreamNoFeatures().get(xx + 8, zz + 8);
         IrisRegion region = getComplex().getRegionStream().get(xx + 8, zz + 8);
         generateParallaxSurface(rng, x, z, biome, region, false);
         generateParallaxMutations(rng, x, z, false);
     }
 
+    @ChunkCoordinates
     default void generateParallaxFeatures(RNG rng, int cx, int cz, IrisRegion region, IrisBiome biome) {
         for (IrisFeaturePotential i : getEngine().getDimension().getFeatures()) {
             placeZone(rng, cx, cz, i);
@@ -375,7 +368,11 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
 
     default void placeZone(RNG rng, int cx, int cz, IrisFeaturePotential i) {
         if (i.hasZone(rng, cx, cz)) {
-            getParallaxAccess().getMetaRW(cx, cz).getFeatures().add(new IrisFeaturePositional((cx << 4) + rng.nextInt(16), (cz << 4) + rng.nextInt(16), i.getZone()));
+            getParallaxAccess().getMetaRW(cx, cz).getFeatures()
+                    .add(new IrisFeaturePositional(
+                            (cx << 4) + rng.nextInt(16),
+                            (cz << 4) + rng.nextInt(16),
+                            i.getZone()));
         }
     }
 
@@ -507,8 +504,8 @@ public interface EngineParallaxManager extends DataProvider, IObjectPlacer {
         searching:
         for (IrisBiomeMutation k : getEngine().getDimension().getMutations()) {
             for (int l = 0; l < k.getChecks(); l++) {
-                IrisBiome sa = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
-                IrisBiome sb = getComplex().getTrueBiomeStream().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sa = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
+                IrisBiome sb = getComplex().getTrueBiomeStreamNoFeatures().get(((x * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()), ((z * 16) + rng.nextInt(16)) + rng.i(-k.getRadius(), k.getRadius()));
 
                 if (sa.getLoadKey().equals(sb.getLoadKey())) {
                     continue;

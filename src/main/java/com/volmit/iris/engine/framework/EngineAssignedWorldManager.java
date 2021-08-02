@@ -40,7 +40,7 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     @EventHandler
     public void on(WorldSaveEvent e) {
         if (e.getWorld().equals(getTarget().getWorld().realWorld())) {
-            onSave();
+            getEngine().save();
         }
     }
 
@@ -48,13 +48,6 @@ public abstract class EngineAssignedWorldManager extends EngineAssignedComponent
     public void on(WorldUnloadEvent e) {
         if (e.getWorld().equals(getTarget().getWorld().realWorld())) {
             getEngine().close();
-        }
-    }
-
-    @EventHandler
-    public void on(EntitySpawnEvent e) {
-        if (e.getEntity().getWorld().equals(getTarget().getWorld().realWorld())) {
-            onEntitySpawn(e);
         }
     }
 

@@ -16,20 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.volmit.iris.engine.framework;
+package com.volmit.iris.engine.object.engine;
 
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import com.volmit.iris.util.collection.KList;
+import lombok.Data;
 
-@SuppressWarnings("EmptyMethod")
-public interface EngineWorldManager {
-    void close();
-
-    void onTick();
-
-    void onSave();
-
-    void onBlockBreak(BlockBreakEvent e);
-
-    void onBlockPlace(BlockPlaceEvent e);
+@Data
+public class IrisEngineData
+{
+    private IrisEngineStatistics statistics = new IrisEngineStatistics();
+    private KList<IrisEngineSpawnerCooldown> spawnerCooldowns = new KList<>();
 }

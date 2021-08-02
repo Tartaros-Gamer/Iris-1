@@ -21,6 +21,7 @@ package com.volmit.iris.core.gui;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.gui.components.IrisRenderer;
 import com.volmit.iris.core.gui.components.RenderType;
+import com.volmit.iris.core.tools.IrisWorlds;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.IrisAccess;
@@ -151,6 +152,23 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
                 eh.shutdown();
             }
         });
+    }
+
+    public boolean updateEngine() {
+        if (engine.isClosed()) {
+            int index = engine.getIndex();
+
+            if (world.hasRealWorld()) {
+                try {
+                    engine = IrisWorlds.access(world.realWorld()).getCompound().getEngine(index);
+                    return !engine.isClosed();
+                } catch (Throwable e) {
+
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -385,6 +403,10 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void paint(Graphics gx) {
+        if (updateEngine()) {
+            dump();
+        }
+
         if (ox < oxp) {
             velocity = Math.abs(ox - oxp) * 0.36;
             oxp -= velocity;
