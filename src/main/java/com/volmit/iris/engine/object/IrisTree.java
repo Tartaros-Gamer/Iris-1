@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,13 +29,13 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.TreeType;
 
+@Snippet("tree")
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @Desc("Tree replace options for this object placer")
 @Data
 public class IrisTree {
-
     @Required
     @Desc("The types of trees overwritten by this object")
     @ArrayType(min = 1, type = TreeType.class)
@@ -52,8 +53,7 @@ public class IrisTree {
     private boolean anySize;
 
     public boolean matches(IrisTreeSize size, TreeType type) {
-        if(!matchesSize(size))
-        {
+        if (!matchesSize(size)) {
             return false;
         }
 
@@ -61,10 +61,8 @@ public class IrisTree {
     }
 
     private boolean matchesSize(IrisTreeSize size) {
-        for(IrisTreeSize i : getSizes())
-        {
-            if((i.getDepth() == size.getDepth() && i.getWidth() == size.getWidth()) || (i.getDepth() == size.getWidth() && i.getWidth() == size.getDepth()))
-            {
+        for (IrisTreeSize i : getSizes()) {
+            if ((i.getDepth() == size.getDepth() && i.getWidth() == size.getWidth()) || (i.getDepth() == size.getWidth() && i.getWidth() == size.getDepth())) {
                 return true;
             }
         }

@@ -19,12 +19,14 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("range")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -43,5 +45,9 @@ public class IrisRange {
         }
 
         return rng.d(min, max);
+    }
+
+    public boolean contains(int v) {
+        return v >= min && v <= max;
     }
 }

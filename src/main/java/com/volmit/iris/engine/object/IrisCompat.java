@@ -19,10 +19,9 @@
 package com.volmit.iris.engine.object;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.data.B;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.scheduling.J;
@@ -43,136 +42,38 @@ public class IrisCompat {
         itemFilters = getDefaultItemCompatabilityFilters();
     }
 
-    public BlockData getBlock(String n) {
-        String buf = n;
-        int err = 16;
-
-        BlockData tx = B.getOrNull(buf);
-
-        if (tx != null) {
-            return tx;
-        }
-
-        searching:
-        while (true) {
-            if (err-- <= 0) {
-                return B.get("STONE");
-            }
-
-            for (IrisCompatabilityBlockFilter i : blockFilters) {
-                if (i.getWhen().equalsIgnoreCase(buf)) {
-                    BlockData b = i.getReplace();
-
-                    if (b != null) {
-                        return b;
-                    }
-
-                    buf = i.getSupplement();
-                    continue searching;
-                }
-            }
-
-            return B.get("STONE");
-        }
-    }
-
-    public Material getItem(String n) {
-        String buf = n;
-        int err = 16;
-        Material txf = B.getMaterialOrNull(buf);
-
-        if (txf != null) {
-            return txf;
-        }
-
-        int nomore = 64;
-
-        searching:
-        while (true) {
-            if (nomore < 0) {
-                return B.getMaterial("STONE");
-            }
-
-            nomore--;
-            if (err-- <= 0) {
-                break;
-            }
-
-            for (IrisCompatabilityItemFilter i : itemFilters) {
-                if (i.getWhen().equalsIgnoreCase(buf)) {
-                    Material b = i.getReplace();
-
-                    if (b != null) {
-                        return b;
-                    }
-
-                    buf = i.getSupplement();
-                    continue searching;
-                }
-            }
-
-            break;
-        }
-
-        buf = n;
-        BlockData tx = B.getOrNull(buf);
-
-        if (tx != null) {
-            return tx.getMaterial();
-        }
-        nomore = 64;
-
-        searching:
-        while (true) {
-            if (nomore < 0) {
-                return B.getMaterial("STONE");
-            }
-
-            nomore--;
-
-            if (err-- <= 0) {
-                return B.getMaterial("STONE");
-            }
-
-            for (IrisCompatabilityBlockFilter i : blockFilters) {
-                if (i.getWhen().equalsIgnoreCase(buf)) {
-                    BlockData b = i.getReplace();
-
-                    if (b != null) {
-                        return b.getMaterial();
-                    }
-
-                    buf = i.getSupplement();
-                    continue searching;
-                }
-            }
-
-            return B.getMaterial("STONE");
-        }
-    }
-
-    public static IrisCompat configured(File f) throws IOException {
+    public static IrisCompat configured(File f) {
         IrisCompat def = new IrisCompat();
         String defa = new JSONObject(new Gson().toJson(def)).toString(4);
         J.attemptAsync(() -> IO.writeAll(new File(f.getParentFile(), "compat.default.json"), defa));
 
+
         if (!f.exists()) {
-            J.attemptAsync(() -> IO.writeAll(f, defa));
-        }
+            J.a(() -> {
+                try {
+                    IO.writeAll(f, defa);
+                } catch (IOException e) {
+                    Iris.error("Failed to write to compat file");
+                    Iris.reportError(e);
+                }
+            });
+        } else {
+            // If the file doesn't exist, no additional mappings are present outside default
+            // so we shouldn't try getting them
+            try {
+                IrisCompat rea = new Gson().fromJson(IO.readAll(f), IrisCompat.class);
 
-        try {
-            IrisCompat rea = new Gson().fromJson(IO.readAll(f), IrisCompat.class);
+                for (IrisCompatabilityBlockFilter i : rea.getBlockFilters()) {
+                    def.getBlockFilters().add(i);
+                }
 
-            for (IrisCompatabilityBlockFilter i : rea.getBlockFilters()) {
-                def.getBlockFilters().add(i);
+                for (IrisCompatabilityItemFilter i : rea.getItemFilters()) {
+                    def.getItemFilters().add(i);
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
+                Iris.reportError(e);
             }
-
-            for (IrisCompatabilityItemFilter i : rea.getItemFilters()) {
-                def.getItemFilters().add(i);
-            }
-        } catch (JsonSyntaxException e) {
-            e.printStackTrace();
-            Iris.reportError(e);
         }
 
         return def;
@@ -355,5 +256,113 @@ public class IrisCompat {
         filters.add(new IrisCompatabilityBlockFilter("POTTED_BAMBOO", "POTTED_BIRCH_SAPLING"));
 
         return filters;
+    }
+
+    public BlockData getBlock(String n) {
+        String buf = n;
+        int err = 16;
+
+        BlockData tx = B.getOrNull(buf);
+
+        if (tx != null) {
+            return tx;
+        }
+
+        searching:
+        while (true) {
+            if (err-- <= 0) {
+                return B.get("STONE");
+            }
+
+            for (IrisCompatabilityBlockFilter i : blockFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
+                    BlockData b = i.getReplace();
+
+                    if (b != null) {
+                        return b;
+                    }
+
+                    buf = i.getSupplement();
+                    continue searching;
+                }
+            }
+
+            return B.get("STONE");
+        }
+    }
+
+    public Material getItem(String n) {
+        String buf = n;
+        int err = 16;
+        Material txf = B.getMaterialOrNull(buf);
+
+        if (txf != null) {
+            return txf;
+        }
+
+        int nomore = 64;
+
+        searching:
+        while (true) {
+            if (nomore < 0) {
+                return B.getMaterial("STONE");
+            }
+
+            nomore--;
+            if (err-- <= 0) {
+                break;
+            }
+
+            for (IrisCompatabilityItemFilter i : itemFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
+                    Material b = i.getReplace();
+
+                    if (b != null) {
+                        return b;
+                    }
+
+                    buf = i.getSupplement();
+                    continue searching;
+                }
+            }
+
+            break;
+        }
+
+        buf = n;
+        BlockData tx = B.getOrNull(buf);
+
+        if (tx != null) {
+            return tx.getMaterial();
+        }
+        nomore = 64;
+
+        searching:
+        while (true) {
+            if (nomore < 0) {
+                return B.getMaterial("STONE");
+            }
+
+            nomore--;
+
+            if (err-- <= 0) {
+                return B.getMaterial("STONE");
+            }
+
+            for (IrisCompatabilityBlockFilter i : blockFilters) {
+                if (i.getWhen().equalsIgnoreCase(buf)) {
+                    BlockData b = i.getReplace();
+
+                    if (b != null) {
+                        return b.getMaterial();
+                    }
+
+                    buf = i.getSupplement();
+                    continue searching;
+                }
+            }
+
+            return B.getMaterial("STONE");
+        }
     }
 }

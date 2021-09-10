@@ -19,12 +19,19 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
+import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -42,33 +49,75 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisBlockData extends IrisRegistrant {
+    private final transient AtomicCache<BlockData> blockdata = new AtomicCache<>();
+    private final transient AtomicCache<String> realProperties = new AtomicCache<>();
     @RegistryListBlockType
     @Required
     @Desc("The block to use")
     private String block = "air";
-
     @Desc("Debug this block by printing it to the console when it's used. Must have debug turned on in settings.")
     private boolean debug = false;
-
-    @Desc("The resource key. Typically Minecraft")
-    private String key = "minecraft";
-
     @MinNumber(1)
     @MaxNumber(1000)
     @Desc("The weight is used when this block data is inside of a list of blockdata. A weight of two is just as if you placed two of the same block data values in the same list making it more common when randomly picked.")
     private int weight = 1;
-
     @Desc("If the block cannot be created on this version, Iris will attempt to use this backup block data instead.")
     private IrisBlockData backup = null;
-
     @Desc("Optional properties for this block data such as 'waterlogged': true")
     private KMap<String, Object> data = new KMap<>();
 
-    private final transient AtomicCache<BlockData> blockdata = new AtomicCache<>();
-    private final transient AtomicCache<String> realProperties = new AtomicCache<>();
-
     public IrisBlockData(String b) {
         this.block = b;
+    }
+
+    public static IrisBlockData from(String j) {
+        IrisBlockData b = new IrisBlockData();
+        String v = j.toLowerCase().trim();
+
+        if (v.contains("[")) {
+            KList<String> props = new KList<>();
+            String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
+            b.setBlock(v.split("\\Q[\\E")[0]);
+
+            if (rp.contains(",")) {
+                props.add(rp.split("\\Q,\\E"));
+            } else {
+                props.add(rp);
+            }
+
+            for (String i : props) {
+                Object kg = filter(i.split("\\Q=\\E")[1]);
+                b.data.put(i.split("\\Q=\\E")[0], kg);
+            }
+        } else {
+            b.setBlock(v);
+        }
+
+        return b;
+    }
+
+    private static Object filter(String string) {
+        if (string.equals("true")) {
+            return true;
+        }
+
+        if (string.equals("false")) {
+            return false;
+        }
+
+        try {
+            return Integer.parseInt(string);
+        } catch (Throwable ignored) {
+            // Checks
+        }
+
+        try {
+            return Double.valueOf(string).intValue();
+        } catch (Throwable ignored) {
+            // Checks
+        }
+
+        return string;
     }
 
     public String computeProperties(KMap<String, Object> data) {
@@ -89,7 +138,7 @@ public class IrisBlockData extends IrisRegistrant {
         return computeProperties(getData());
     }
 
-    public BlockData getBlockData(IrisDataManager data) {
+    public BlockData getBlockData(IrisData data) {
         return blockdata.aquire(() ->
         {
             BlockData b = null;
@@ -114,7 +163,7 @@ public class IrisBlockData extends IrisRegistrant {
                         cdata.put(i, getData().get(i));
                     }
 
-                    String sx = getKey() + ":" + st.split("\\Q:\\E")[1] + computeProperties(cdata);
+                    String sx = keyify(st) + computeProperties(cdata);
 
                     if (debug) {
                         Iris.debug("Block Data used " + sx + " (CUSTOM)");
@@ -132,7 +181,7 @@ public class IrisBlockData extends IrisRegistrant {
                 }
             }
 
-            String ss = getKey() + ":" + getBlock() + computeProperties();
+            String ss = keyify(getBlock()) + computeProperties();
             b = B.get(ss);
 
             if (debug) {
@@ -151,62 +200,26 @@ public class IrisBlockData extends IrisRegistrant {
         });
     }
 
-    public static IrisBlockData from(String j) {
-        IrisBlockData b = new IrisBlockData();
-        String m = j.toLowerCase().trim();
-
-        if (m.contains(":")) {
-            b.setKey(m.split("\\Q:\\E")[0]);
-            String v = m.split("\\Q:\\E")[1];
-
-            if (v.contains("[")) {
-                KList<String> props = new KList<>();
-                String rp = v.split("\\Q[\\E")[1].replaceAll("\\Q]\\E", "");
-                b.setBlock(v.split("\\Q[\\E")[0]);
-
-                if (rp.contains(",")) {
-                    props.add(rp.split("\\Q,\\E"));
-                } else {
-                    props.add(rp);
-                }
-
-                for (String i : props) {
-                    Object kg = filter(i.split("\\Q=\\E")[1]);
-                    b.data.put(i.split("\\Q=\\E")[0], kg);
-                }
-            } else {
-                b.setBlock(v);
-            }
-        } else {
-            b.setBlock(m);
+    private String keyify(String dat) {
+        if (dat.contains(":")) {
+            return dat;
         }
 
-        return b;
+        return "minecraft:" + dat;
     }
 
-    private static Object filter(String string) {
-        if (string.equals("true")) {
-            return true;
-        }
+    @Override
+    public String getFolderName() {
+        return "blocks";
+    }
 
-        if (string.equals("false")) {
-            return false;
-        }
+    @Override
+    public String getTypeName() {
+        return "Block";
+    }
 
-        try {
-            return Integer.valueOf(string);
-        } catch (Throwable e) {
-            Iris.reportError(e);
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
 
-        }
-
-        try {
-            return Double.valueOf(string).intValue();
-        } catch (Throwable e) {
-            Iris.reportError(e);
-
-        }
-
-        return string;
     }
 }

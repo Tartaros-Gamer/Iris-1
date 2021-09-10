@@ -20,19 +20,20 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListObject;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("rare-object")
 @SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-
 @Desc("Represents a structure tile")
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -42,7 +43,7 @@ public class IrisRareObject {
     @Desc("The rarity is 1 in X")
     private int rarity = 1;
 
-    @RegistryListObject
+    @RegistryListResource(IrisObject.class)
     @Required
     @Desc("The object to place if rarity check passed")
     private String object = "";

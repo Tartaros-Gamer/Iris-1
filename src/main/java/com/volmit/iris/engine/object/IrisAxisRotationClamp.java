@@ -18,13 +18,19 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.DependsOn;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.M;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("axis-rotation")
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor
@@ -33,6 +39,7 @@ import lombok.experimental.Accessors;
 public class IrisAxisRotationClamp {
     @Desc("Should this axis be rotated at all?")
     private boolean enabled = false;
+
     private transient boolean forceLock = false;
 
     @Required
@@ -72,7 +79,7 @@ public class IrisAxisRotationClamp {
 
     public double getRadians(int rng) {
         if (forceLock) {
-            return Math.toRadians(max);
+            return Math.toRadians(Math.ceil(Math.abs((max % 360D))));
         }
 
         if (isUnlimited()) {

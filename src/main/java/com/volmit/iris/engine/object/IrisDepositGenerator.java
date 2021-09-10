@@ -18,9 +18,14 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -30,62 +35,55 @@ import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.BlockVector;
 
+@Snippet("deposit")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Creates ore & other block deposits underground")
 @Data
 public class IrisDepositGenerator {
+    private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
+    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
     @Required
     @MinNumber(0)
     @MaxNumber(256) // TODO: WARNING HEIGHT
     @Desc("The minimum height this deposit can generate at")
     private int minHeight = 7;
-
     @Required
     @MinNumber(0)
     @MaxNumber(256) // TODO: WARNING HEIGHT
     @Desc("The maximum height this deposit can generate at")
     private int maxHeight = 55;
-
     @Required
     @MinNumber(1)
-    @MaxNumber(32)
+    @MaxNumber(8192)
     @Desc("The minimum amount of deposit blocks per clump")
     private int minSize = 3;
-
     @Required
     @MinNumber(1)
-    @MaxNumber(32)
+    @MaxNumber(8192)
     @Desc("The maximum amount of deposit blocks per clump")
-    private int maxSize = 5;
-
+    private int maxSize = 64;
     @Required
     @MinNumber(1)
     @MaxNumber(128)
     @Desc("The maximum amount of clumps per chunk")
     private int maxPerChunk = 3;
-
     @Required
     @MinNumber(0)
     @MaxNumber(128)
     @Desc("The minimum amount of clumps per chunk")
     private int minPerChunk = 1;
-
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this deposit generator")
     private KList<IrisBlockData> palette = new KList<>();
-
     @MinNumber(1)
     @MaxNumber(64)
     @Desc("Ore varience is how many different objects clumps iris will create")
     private int varience = 3;
 
-    private final transient AtomicCache<KList<IrisObject>> objects = new AtomicCache<>();
-    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
-
-    public IrisObject getClump(RNG rng, IrisDataManager rdata) {
+    public IrisObject getClump(RNG rng, IrisData rdata) {
         KList<IrisObject> objects = this.objects.aquire(() ->
         {
             RNG rngv = rng.nextParallelRNG(3957778);
@@ -104,7 +102,7 @@ public class IrisDepositGenerator {
         return Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
     }
 
-    private IrisObject generateClumpObject(RNG rngv, IrisDataManager rdata) {
+    private IrisObject generateClumpObject(RNG rngv, IrisData rdata) {
         int s = rngv.i(minSize, maxSize);
         int dim = Math.min(11, (int) Math.round(Math.pow(maxSize, 1D / 3D)));
         int w = dim / 2;
@@ -124,11 +122,11 @@ public class IrisDepositGenerator {
         return o;
     }
 
-    private BlockData nextBlock(RNG rngv, IrisDataManager rdata) {
+    private BlockData nextBlock(RNG rngv, IrisData rdata) {
         return getBlockData(rdata).get(rngv.i(0, getBlockData(rdata).size() - 1));
     }
 
-    public KList<BlockData> getBlockData(IrisDataManager rdata) {
+    public KList<BlockData> getBlockData(IrisData rdata) {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();

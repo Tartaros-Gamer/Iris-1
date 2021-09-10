@@ -21,6 +21,7 @@ package com.volmit.iris.engine.data.chunk;
 import com.volmit.iris.core.nms.BiomeBaseInjector;
 import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.data.IrisBiomeStorage;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -29,13 +30,14 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 import org.bukkit.material.MaterialData;
-import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("deprecation")
 public class LinkedTerrainChunk implements TerrainChunk {
     private final IrisBiomeStorage biome3D;
-    private ChunkData rawChunkData;
     private final BiomeGrid storage;
+    private ChunkData rawChunkData;
+    @Setter
+    private boolean unsafe = false;
 
     public LinkedTerrainChunk(World world) {
         this(null, Bukkit.createChunkData(world));
@@ -53,10 +55,16 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Override
     public BiomeBaseInjector getBiomeBaseInjector() {
+
+        if (unsafe) {
+            return (a, b, c, d) -> {
+            };
+        }
+
         return (x, y, z, bb) -> INMS.get().forceBiomeInto(x, y, z, bb, storage);
     }
 
-    @NotNull
+
     @Override
     public Biome getBiome(int x, int z) {
         if (storage != null) {
@@ -66,7 +74,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
         return biome3D.getBiome(x, 0, z);
     }
 
-    @NotNull
+
     @Override
     public Biome getBiome(int x, int y, int z) {
         if (storage != null) {
@@ -115,7 +123,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
         rawChunkData.setBlock(x, y, z, blockData);
     }
 
-    @NotNull
+
     @Override
     public BlockData getBlockData(int x, int y, int z) {
         return rawChunkData.getBlockData(x, y, z);
@@ -123,41 +131,41 @@ public class LinkedTerrainChunk implements TerrainChunk {
 
     @Deprecated
     @Override
-    public synchronized void setBlock(int x, int y, int z, @NotNull Material material) {
+    public synchronized void setBlock(int x, int y, int z, Material material) {
         rawChunkData.setBlock(x, y, z, material);
     }
 
     @Deprecated
     @Override
-    public synchronized void setBlock(int x, int y, int z, @NotNull MaterialData material) {
+    public synchronized void setBlock(int x, int y, int z, MaterialData material) {
         rawChunkData.setBlock(x, y, z, material);
     }
 
     @Deprecated
     @Override
-    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull Material material) {
+    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Material material) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material);
     }
 
     @Deprecated
     @Override
-    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull MaterialData material) {
+    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, MaterialData material) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, material);
     }
 
     @Override
-    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, @NotNull BlockData blockData) {
+    public synchronized void setRegion(int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, BlockData blockData) {
         rawChunkData.setRegion(xMin, yMin, zMin, xMax, yMax, zMax, blockData);
     }
 
-    @NotNull
+
     @Deprecated
     @Override
     public synchronized Material getType(int x, int y, int z) {
         return rawChunkData.getType(x, y, z);
     }
 
-    @NotNull
+
     @Deprecated
     @Override
     public MaterialData getTypeAndData(int x, int y, int z) {

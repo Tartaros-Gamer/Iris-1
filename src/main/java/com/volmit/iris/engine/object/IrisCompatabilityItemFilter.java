@@ -19,10 +19,10 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.data.B;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.util.data.B;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -33,16 +33,14 @@ import org.bukkit.Material;
 @Desc("Find and replace object items for compatability")
 @Data
 public class IrisCompatabilityItemFilter {
+    private final transient AtomicCache<Material> findData = new AtomicCache<>(true);
+    private final transient AtomicCache<Material> replaceData = new AtomicCache<>(true);
     @Required
     @Desc("When iris sees this block, and it's not reconized")
     private String when = "";
-
     @Required
     @Desc("Replace it with this block. Dont worry if this block is also not reconized, iris repeat this compat check.")
     private String supplement = "";
-
-    private final transient AtomicCache<Material> findData = new AtomicCache<>(true);
-    private final transient AtomicCache<Material> replaceData = new AtomicCache<>(true);
 
     public IrisCompatabilityItemFilter(String when, String supplement) {
         this.when = when;

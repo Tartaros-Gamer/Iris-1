@@ -18,6 +18,9 @@
 
 package com.volmit.iris.util.math;
 
+import com.volmit.iris.engine.object.IrisPosition;
+import org.bukkit.util.Vector;
+
 public class Position2 {
     private int x;
     private int z;
@@ -25,6 +28,11 @@ public class Position2 {
     public Position2(int x, int z) {
         this.x = x;
         this.z = z;
+    }
+
+    public Position2(Vector center) {
+        this.x = center.getBlockX();
+        this.z = center.getBlockZ();
     }
 
     public int getX() {
@@ -81,5 +89,9 @@ public class Position2 {
 
     public Position2 blockToChunk() {
         return new Position2(x >> 4, z >> 4);
+    }
+
+    public IrisPosition toIris() {
+        return new IrisPosition(x, 23, z);
     }
 }

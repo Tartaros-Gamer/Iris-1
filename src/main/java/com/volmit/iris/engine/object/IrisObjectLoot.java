@@ -18,12 +18,13 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListLoot;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,30 +32,27 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+@Snippet("object-loot")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents loot within this object or jigsaw piece")
 @Data
 public class IrisObjectLoot {
+    private final transient AtomicCache<KList<BlockData>> filterCache = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The list of blocks this loot table should apply to")
     private KList<IrisBlockData> filter = new KList<>();
-
     @Desc("Exactly match the block data or not")
     private boolean exact = false;
-
     @Desc("The loot table name")
     @Required
-    @RegistryListLoot
+    @RegistryListResource(IrisLootTable.class)
     private String name;
-
     @Desc("The weight of this loot table being chosen")
     private int weight = 1;
 
-    private final transient AtomicCache<KList<BlockData>> filterCache = new AtomicCache<>();
-
-    public KList<BlockData> getFilter(IrisDataManager rdata) {
+    public KList<BlockData> getFilter(IrisData rdata) {
         return filterCache.aquire(() ->
         {
             KList<BlockData> b = new KList<>();
@@ -71,7 +69,7 @@ public class IrisObjectLoot {
         });
     }
 
-    public boolean matchesFilter(IrisDataManager manager, BlockData data) {
+    public boolean matchesFilter(IrisData manager, BlockData data) {
         for (BlockData filterData : getFilter(manager)) {
             if (filterData.matches(data)) return true;
         }

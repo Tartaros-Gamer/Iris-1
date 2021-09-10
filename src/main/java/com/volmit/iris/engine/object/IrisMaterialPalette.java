@@ -18,44 +18,43 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.noise.CNG;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+@Snippet("palette")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("A palette of materials")
 @Data
 public class IrisMaterialPalette {
+    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
+    private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
+    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
     @Desc("The style of noise")
     private IrisGeneratorStyle style = NoiseStyle.STATIC.style();
-
     @MinNumber(0.0001)
     @Desc("The terrain zoom mostly for zooming in on a wispy palette")
     private double zoom = 5;
-
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The palette of blocks to be used in this layer")
     private KList<IrisBlockData> palette = new KList<IrisBlockData>().qadd(new IrisBlockData("STONE"));
 
-    private final transient AtomicCache<KList<BlockData>> blockData = new AtomicCache<>();
-    private final transient AtomicCache<CNG> layerGenerator = new AtomicCache<>();
-    private final transient AtomicCache<CNG> heightGenerator = new AtomicCache<>();
-
-    public BlockData get(RNG rng, double x, double y, double z, IrisDataManager rdata) {
+    public BlockData get(RNG rng, double x, double y, double z, IrisData rdata) {
         if (getBlockData(rdata).isEmpty()) {
             return null;
         }
@@ -67,11 +66,11 @@ public class IrisMaterialPalette {
         return getLayerGenerator(rng, rdata).fit(getBlockData(rdata), x / zoom, y / zoom, z / zoom);
     }
 
-    public CNG getLayerGenerator(RNG rng, IrisDataManager rdata) {
+    public CNG getLayerGenerator(RNG rng, IrisData rdata) {
         return layerGenerator.aquire(() ->
         {
             RNG rngx = rng.nextParallelRNG(-23498896 + getBlockData(rdata).size());
-            return style.create(rngx);
+            return style.create(rngx, rdata);
         });
     }
 
@@ -92,7 +91,7 @@ public class IrisMaterialPalette {
         return this;
     }
 
-    public KList<BlockData> getBlockData(IrisDataManager rdata) {
+    public KList<BlockData> getBlockData(IrisData rdata) {
         return blockData.aquire(() ->
         {
             KList<BlockData> blockData = new KList<>();

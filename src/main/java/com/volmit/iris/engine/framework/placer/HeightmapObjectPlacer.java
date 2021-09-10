@@ -18,9 +18,10 @@
 
 package com.volmit.iris.engine.framework.placer;
 
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.object.IObjectPlacer;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.common.IObjectPlacer;
-import com.volmit.iris.engine.object.tile.TileData;
+import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.math.RNG;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
@@ -30,19 +31,18 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
     private final IrisObjectPlacement config;
     private final IObjectPlacer oplacer;
 
-    public HeightmapObjectPlacer(RNG rng, int x, int yv, int z, IrisObjectPlacement config, IObjectPlacer oplacer)
-    {
-        s =  rng.nextLong() + yv + z - x;
+    public HeightmapObjectPlacer(RNG rng, int x, int yv, int z, IrisObjectPlacement config, IObjectPlacer oplacer) {
+        s = rng.nextLong() + yv + z - x;
         this.config = config;
         this.oplacer = oplacer;
     }
 
-    public int getHighest(int param1Int1, int param1Int2) {
-        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2));
+    public int getHighest(int param1Int1, int param1Int2, IrisData data) {
+        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, data));
     }
 
-    public int getHighest(int param1Int1, int param1Int2, boolean param1Boolean) {
-        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2));
+    public int getHighest(int param1Int1, int param1Int2, IrisData data, boolean param1Boolean) {
+        return (int) Math.round(config.getHeightmap().getNoise(this.s, param1Int1, param1Int2, data));
     }
 
     public void set(int param1Int1, int param1Int2, int param1Int3, BlockData param1BlockData) {
@@ -55,6 +55,11 @@ public class HeightmapObjectPlacer implements IObjectPlacer {
 
     public boolean isPreventingDecay() {
         return oplacer.isPreventingDecay();
+    }
+
+    @Override
+    public boolean isCarved(int x, int y, int z) {
+        return false;
     }
 
     public boolean isSolid(int param1Int1, int param1Int2, int param1Int3) {

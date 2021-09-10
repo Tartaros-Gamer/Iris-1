@@ -24,7 +24,6 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
-import org.jetbrains.annotations.NotNull;
 
 public interface TerrainChunk extends BiomeGrid, ChunkData {
     static TerrainChunk create(World world) {
@@ -35,13 +34,17 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
         return new LinkedTerrainChunk(world, grid);
     }
 
+    static TerrainChunk createUnsafe(World world, BiomeGrid grid) {
+        LinkedTerrainChunk ltc = new LinkedTerrainChunk(world, grid);
+        ltc.setUnsafe(true);
+        return ltc;
+    }
+
     static TerrainChunk create(ChunkData raw, BiomeGrid grid) {
         return new LinkedTerrainChunk(grid, raw);
     }
 
     BiomeBaseInjector getBiomeBaseInjector();
-
-    void setRaw(ChunkData data);
 
     /**
      * Get biome at x, z within chunk being generated
@@ -51,7 +54,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @return Biome value
      * @deprecated biomes are now 3-dimensional
      */
-    @NotNull
+
     @Deprecated
     Biome getBiome(int x, int z);
 
@@ -63,7 +66,6 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @param z - 0-15
      * @return Biome value
      */
-    @NotNull
     Biome getBiome(int x, int y, int z);
 
     /**
@@ -75,7 +77,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @deprecated biomes are now 3-dimensional
      */
     @Deprecated
-    void setBiome(int x, int z, @NotNull Biome bio);
+    void setBiome(int x, int z, Biome bio);
 
     /**
      * Set biome at x, z within chunk being generated
@@ -85,7 +87,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @param z   - 0-15
      * @param bio - Biome value
      */
-    void setBiome(int x, int y, int z, @NotNull Biome bio);
+    void setBiome(int x, int y, int z, Biome bio);
 
     /**
      * Get the maximum height for the chunk.
@@ -107,7 +109,7 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @param z         the z location in the chunk from 0-15 inclusive
      * @param blockData the type to set the block to
      */
-    void setBlock(int x, int y, int z, @NotNull BlockData blockData);
+    void setBlock(int x, int y, int z, BlockData blockData);
 
     /**
      * Get the type and data of the block at x, y, z.
@@ -121,10 +123,11 @@ public interface TerrainChunk extends BiomeGrid, ChunkData {
      * @return the data of the block or the BlockData for air if x, y or z are
      * outside the chunk's bounds
      */
-    @NotNull
     BlockData getBlockData(int x, int y, int z);
 
     ChunkData getRaw();
+
+    void setRaw(ChunkData data);
 
     void inject(BiomeGrid biome);
 }

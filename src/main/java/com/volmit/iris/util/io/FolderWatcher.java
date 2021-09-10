@@ -48,10 +48,6 @@ public class FolderWatcher extends FileWatcher {
                 }
             }
 
-            if (watchers == null) {
-                System.out.print("wtf");
-            }
-
             for (File i : watchers.k()) {
                 if (!i.exists()) {
                     watchers.remove(i);
@@ -71,13 +67,13 @@ public class FolderWatcher extends FileWatcher {
             KMap<File, FolderWatcher> w = watchers.copy();
             readProperties();
 
-            for (File i : w.k()) {
+            for (File i : w.keySet()) {
                 if (!watchers.containsKey(i)) {
                     deleted.add(i);
                 }
             }
 
-            for (File i : watchers.k()) {
+            for (File i : watchers.keySet()) {
                 if (!w.containsKey(i)) {
                     created.add(i);
                 } else {
@@ -90,6 +86,33 @@ public class FolderWatcher extends FileWatcher {
                     created.addAll(fw.getCreated());
                     deleted.addAll(fw.getDeleted());
                 }
+            }
+
+            return !changed.isEmpty() || !created.isEmpty() || !deleted.isEmpty();
+        }
+
+        return super.checkModified();
+    }
+
+    public boolean checkModifiedFast() {
+        if (watchers == null || watchers.isEmpty()) {
+            return checkModified();
+        }
+
+        changed.clear();
+        created.clear();
+        deleted.clear();
+
+        if (file.isDirectory()) {
+            for (File i : watchers.keySet()) {
+                FolderWatcher fw = watchers.get(i);
+                if (fw.checkModifiedFast()) {
+                    changed.add(fw.file);
+                }
+
+                changed.addAll(fw.getChanged());
+                created.addAll(fw.getCreated());
+                deleted.addAll(fw.getDeleted());
             }
 
             return !changed.isEmpty() || !created.isEmpty() || !deleted.isEmpty();

@@ -18,13 +18,18 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("object-replacer")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,12 +38,12 @@ import lombok.experimental.Accessors;
 public class IrisModObjectReplacer {
     @Required
     @Desc("A list of objects to find")
-    @RegistryListObject
+    @RegistryListResource(IrisObject.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> find = new KList<>();
 
     @Required
     @Desc("An object to replace it with")
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     private String replace = "";
 }

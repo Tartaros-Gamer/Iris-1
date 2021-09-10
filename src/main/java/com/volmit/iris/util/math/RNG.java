@@ -24,9 +24,9 @@ import java.util.Random;
 import java.util.UUID;
 
 public class RNG extends Random {
+    public static final RNG r = new RNG();
     private static final char[] CHARGEN = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-=!@#$%^&*()_+`~[];',./<>?:\\\"{}|\\\\".toCharArray();
     private static final long serialVersionUID = 5222938581174415179L;
-    public static final RNG r = new RNG();
     private final long sx;
 
     public RNG() {
@@ -114,6 +114,10 @@ public class RNG extends Random {
     }
 
     public double d(double lowerBound, double upperBound) {
+        if (lowerBound > upperBound) {
+            return M.lerp(upperBound, lowerBound, nextDouble());
+        }
+
         return M.lerp(lowerBound, upperBound, nextDouble());
     }
 

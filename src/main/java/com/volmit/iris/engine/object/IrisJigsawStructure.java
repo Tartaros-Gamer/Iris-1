@@ -19,9 +19,17 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -37,7 +45,7 @@ import lombok.experimental.Accessors;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisJigsawStructure extends IrisRegistrant {
-    @RegistryListJigsawPiece
+    @RegistryListResource(IrisJigsawPiece.class)
     @Required
     @ArrayType(min = 1, type = String.class)
     @Desc("The starting pieces. Randomly chooses a starting piece, then connects pieces using the pools define in the starting piece.")
@@ -56,6 +64,12 @@ public class IrisJigsawStructure extends IrisRegistrant {
 
     @Desc("If set to true, iris will look for any pieces with only one connector in valid pools for edge connectors and attach them to 'terminate' the paths/piece connectors. Essentially it caps off ends. For example in a village, Iris would add houses to the ends of roads where possible. For terminators to be selected, they can only have one connector or they wont be chosen.")
     private boolean terminate = true;
+
+    @Desc("Override the y range instead of placing on the height map")
+    private IrisStyledRange overrideYRange = null;
+
+    @Desc("Force Y to a specific value")
+    private int lockY = -1;
 
     private transient AtomicCache<Integer> maxDimension = new AtomicCache<>();
 
@@ -128,5 +142,20 @@ public class IrisJigsawStructure extends IrisRegistrant {
                 return (avg / (pieces.size() > 0 ? pieces.size() : 1)) * (((getMaxDepth() + 1) * 2) + 1);
             }
         });
+    }
+
+    @Override
+    public String getFolderName() {
+        return "jigsaw-structures";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Jigsaw Structure";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

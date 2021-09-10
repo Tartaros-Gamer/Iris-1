@@ -18,12 +18,15 @@
 
 package com.volmit.iris.engine.object;
 
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -83,5 +86,20 @@ public class IrisLootTable extends IrisRegistrant {
         }
 
         return lootf;
+    }
+
+    @Override
+    public String getFolderName() {
+        return "loot";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Loot";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

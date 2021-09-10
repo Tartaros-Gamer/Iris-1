@@ -19,12 +19,15 @@
 package com.volmit.iris.engine.object;
 
 import com.google.gson.Gson;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
+import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.function.NoiseProvider;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
@@ -34,17 +37,12 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@Snippet("positional-feature")
 @Data
-
 @NoArgsConstructor
 @Desc("Represents an Iris zone")
 public class IrisFeaturePositional {
-    public IrisFeaturePositional(int x, int z, IrisFeature feature) {
-        this.x = x;
-        this.z = z;
-        this.feature = feature;
-    }
-
+    private static double BLOCK = 1D / 256D; // TODO: WARNING HEIGHT
     @Required
     @Desc("The x coordinate of this zone")
     private int x;
@@ -58,10 +56,21 @@ public class IrisFeaturePositional {
     private IrisFeature feature;
 
     private transient AtomicCache<NoiseProvider> provider = new AtomicCache<>();
-    private static double BLOCK = 1D / 256D; // TODO: WARNING HEIGHT
+    public IrisFeaturePositional(int x, int z, IrisFeature feature) {
+        this.x = x;
+        this.z = z;
+        this.feature = feature;
+    }
 
     public static IrisFeaturePositional read(DataInputStream s) throws IOException {
-        return new Gson().fromJson(s.readUTF(), IrisFeaturePositional.class);
+        String sx = s.readUTF();
+        try {
+            return new Gson().fromJson(sx, IrisFeaturePositional.class);
+        } catch (Throwable e) {
+            Iris.error(sx);
+            e.printStackTrace();
+            throw new IOException(e);
+        }
     }
 
     public void write(DataOutputStream s) throws IOException {
@@ -69,9 +78,9 @@ public class IrisFeaturePositional {
     }
 
     @BlockCoordinates
-    public boolean shouldFilter(double x, double z, RNG rng) {
+    public boolean shouldFilter(double x, double z, RNG rng, IrisData data) {
         double actualRadius = getFeature().getActualRadius();
-        double dist2 = distance2(x, z, rng);
+        double dist2 = distance2(x, z, rng, data);
 
         if (getFeature().isInvertZone()) {
             if (dist2 < Math.pow(getFeature().getBlockRadius() - actualRadius, 2)) {
@@ -82,16 +91,16 @@ public class IrisFeaturePositional {
         return !(dist2 > Math.pow(getFeature().getBlockRadius() + actualRadius, 2));
     }
 
-    public double getStrength(double x, double z, RNG rng) {
+    public double getStrength(double x, double z, RNG rng, IrisData data) {
         double actualRadius = getFeature().getActualRadius();
-        double dist2 = distance2(x, z, rng);
+        double dist2 = distance2(x, z, rng, data);
 
         if (getFeature().isInvertZone()) {
             if (dist2 < Math.pow(getFeature().getBlockRadius() - actualRadius, 2)) {
                 return 0;
             }
 
-            NoiseProvider d = provider.aquire(() -> getNoiseProvider(rng));
+            NoiseProvider d = provider.aquire(() -> getNoiseProvider(rng, data));
             double s = IrisInterpolation.getNoise(getFeature().getInterpolator(), (int) x, (int) z, getFeature().getInterpolationRadius(), d);
 
             if (s <= 0) {
@@ -104,7 +113,7 @@ public class IrisFeaturePositional {
                 return 0;
             }
 
-            NoiseProvider d = provider.aquire(() -> getNoiseProvider(rng));
+            NoiseProvider d = provider.aquire(() -> getNoiseProvider(rng, data));
             double s = IrisInterpolation.getNoise(getFeature().getInterpolator(), (int) x, (int) z, getFeature().getInterpolationRadius(), d);
 
             if (s <= 0) {
@@ -115,17 +124,17 @@ public class IrisFeaturePositional {
         }
     }
 
-    public double getObjectChanceModifier(double x, double z, RNG rng) {
+    public double getObjectChanceModifier(double x, double z, RNG rng, IrisData data) {
         if (getFeature().getObjectChance() >= 1) {
             return getFeature().getObjectChance();
         }
 
-        return M.lerp(1, getFeature().getObjectChance(), getStrength(x, z, rng));
+        return M.lerp(1, getFeature().getObjectChance(), getStrength(x, z, rng, data));
     }
 
     public IrisBiome filter(double x, double z, IrisBiome biome, RNG rng) {
         if (getFeature().getCustomBiome() != null) {
-            if (getStrength(x, z, rng) >= getFeature().getBiomeStrengthThreshold()) {
+            if (getStrength(x, z, rng, biome.getLoader()) >= getFeature().getBiomeStrengthThreshold()) {
                 IrisBiome b = biome.getLoader().getBiomeLoader().load(getFeature().getCustomBiome());
                 b.setInferredType(biome.getInferredType());
                 return b;
@@ -135,8 +144,8 @@ public class IrisFeaturePositional {
         return null;
     }
 
-    public double filter(double x, double z, double noise, RNG rng) {
-        double s = getStrength(x, z, rng);
+    public double filter(double x, double z, double noise, RNG rng, IrisData data) {
+        double s = getStrength(x, z, rng, data);
 
         if (s <= 0) {
             return noise;
@@ -154,24 +163,24 @@ public class IrisFeaturePositional {
         return M.lerp(noise, fx, s);
     }
 
-    public double distance(double x, double z, RNG rng) {
+    public double distance(double x, double z, RNG rng, IrisData data) {
         double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getMultiplier() / 2 : 1;
-        double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng).fitDouble(-mul, mul, x, z) : 0;
+        double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng, data).fitDouble(-mul, mul, x, z) : 0;
         return Math.sqrt(Math.pow(this.x - (x + mod), 2) + Math.pow(this.z - (z + mod), 2));
     }
 
-    public double distance2(double x, double z, RNG rng) {
+    public double distance2(double x, double z, RNG rng, IrisData data) {
         double mul = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().getMultiplier() / 2 : 1;
-        double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng).fitDouble(-mul, mul, x, z) : 0;
+        double mod = getFeature().getFractureRadius() != null ? getFeature().getFractureRadius().create(rng, data).fitDouble(-mul, mul, x, z) : 0;
 
         return Math.pow(this.x - (x + mod), 2) + Math.pow(this.z - (z + mod), 2);
     }
 
-    private NoiseProvider getNoiseProvider(RNG rng) {
+    private NoiseProvider getNoiseProvider(RNG rng, IrisData data) {
         if (getFeature().isInvertZone()) {
-            return (x, z) -> distance(x, z, rng) > getFeature().getBlockRadius() ? 1D : 0D;
+            return (x, z) -> distance(x, z, rng, data) > getFeature().getBlockRadius() ? 1D : 0D;
         } else {
-            return (x, z) -> distance(x, z, rng) < getFeature().getBlockRadius() ? 1D : 0D;
+            return (x, z) -> distance(x, z, rng, data) < getFeature().getBlockRadius() ? 1D : 0D;
         }
     }
 }

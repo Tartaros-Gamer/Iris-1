@@ -18,22 +18,17 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.common.IRare;
-import com.volmit.iris.engine.stream.ProceduralStream;
-import com.volmit.iris.engine.stream.convert.SelectionStream;
+import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.reflect.V;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.bukkit.Chunk;
 import org.bukkit.World;
 
 @EqualsAndHashCode(callSuper = true)
@@ -47,6 +42,16 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The entity spawns to add")
     private KList<IrisEntitySpawn> spawns = new KList<>();
 
+    @ArrayType(min = 1, type = IrisEntitySpawn.class)
+    @Desc("The entity spawns to add initially. EXECUTES PER CHUNK!")
+    private KList<IrisEntitySpawn> initialSpawns = new KList<>();
+
+    @Desc("The energy multiplier when calculating spawn energy usage")
+    private double energyMultiplier = 1;
+
+    @Desc("This spawner will not spawn in a given chunk if that chunk has more than the defined amount of living entities.")
+    private int maxEntitiesPerChunk = 1;
+
     @Desc("The block of 24 hour time to contain this spawn in.")
     private IrisTimeBlock timeBlock = new IrisTimeBlock();
 
@@ -56,8 +61,49 @@ public class IrisSpawner extends IrisRegistrant {
     @Desc("The maximum rate this spawner can fire")
     private IrisRate maximumRate = new IrisRate();
 
-    public boolean isValid(World world)
-    {
+    @Desc("The maximum rate this spawner can fire on a specific chunk")
+    private IrisRate maximumRatePerChunk = new IrisRate();
+
+    @Desc("The light levels this spawn is allowed to run in (0-15 inclusive)")
+    private IrisRange allowedLightLevels = new IrisRange(0, 15);
+
+    @Desc("Where should these spawns be placed")
+    private IrisSpawnGroup group = IrisSpawnGroup.NORMAL;
+
+    public boolean isValid(IrisBiome biome) {
+        return switch (group) {
+            case NORMAL -> switch (biome.getInferredType()) {
+                case SHORE, SEA, CAVE, DEFER -> false;
+                case LAND -> true;
+            };
+            case CAVE -> true;
+            case UNDERWATER -> switch (biome.getInferredType()) {
+                case SHORE, LAND, CAVE, DEFER -> false;
+                case SEA -> true;
+            };
+            case BEACH -> switch (biome.getInferredType()) {
+                case SHORE -> true;
+                case LAND, CAVE, SEA, DEFER -> false;
+            };
+        };
+    }
+
+    public boolean isValid(World world) {
         return timeBlock.isWithin(world) && weather.is(world);
+    }
+
+    @Override
+    public String getFolderName() {
+        return "spawners";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Spawner";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

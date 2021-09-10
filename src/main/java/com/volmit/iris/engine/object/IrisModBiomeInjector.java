@@ -18,13 +18,18 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("biome-injector")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,12 +38,12 @@ import lombok.experimental.Accessors;
 public class IrisModBiomeInjector {
     @Required
     @Desc("The region to find")
-    @RegistryListRegion
+    @RegistryListResource(IrisRegion.class)
     private String region = "";
 
     @Required
     @Desc("A biome to inject into the region")
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> inject = new KList<>();
 }

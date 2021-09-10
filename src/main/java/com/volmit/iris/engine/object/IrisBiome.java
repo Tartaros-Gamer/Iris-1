@@ -19,171 +19,55 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.core.IrisDataManager;
 import com.volmit.iris.core.gui.components.RenderType;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.data.B;
-import com.volmit.iris.engine.data.DataProvider;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.noise.CNG;
-import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.DependsOn;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.data.B;
+import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.data.VanillaBiomeMap;
 import com.volmit.iris.util.inventorygui.RandomColor;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-import java.awt.*;
+import java.awt.Color;
 
 @SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-
 @Desc("Represents a biome in iris. Biomes are placed inside of regions and hold objects.\nA biome consists of layers (block palletes), decorations, objects & generators.")
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisBiome extends IrisRegistrant implements IRare {
-    @MinNumber(2)
-    @Required
-    @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
-    private String name = "A Biome";
-
-    @ArrayType(min = 1, type = IrisBiomeCustom.class)
-    @Desc("If the biome type custom is defined, specify this")
-    private KList<IrisBiomeCustom> customDerivitives;
-
-    @Desc("Spawn Entities in this area over time. Iris will continually replenish these mobs just like vanilla does.")
-    @ArrayType(min = 1, type = String.class)
-    @RegistryListSpawner
-    private KList<String> entitySpawners = new KList<>();
-
-    @Desc("Add random chances for terrain features")
-    @ArrayType(min = 1, type = IrisFeaturePotential.class)
-    private KList<IrisFeaturePotential> features = new KList<>();
-
-
-    @ArrayType(min = 1, type = IrisEffect.class)
-    @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play around the player even if where the effect was played is no longer in the biome the player is in.")
-    private KList<IrisEffect> effects = new KList<>();
-
-    @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
-    @Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
-    private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
-
-    @ArrayType(min = 1, type = IrisBlockDrops.class)
-    @Desc("Define custom block drops for this biome")
-    private KList<IrisBlockDrops> blockDrops = new KList<>();
-
-    @Desc("Reference loot tables in this area")
-    private IrisLootReference loot = new IrisLootReference();
-
-    @MinNumber(0.0001)
-    @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
-    @Desc("This zooms in the biome colors if multiple derivatives are chosen")
-    private double biomeZoom = 1;
-
-    @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
-    private boolean lockLayers = false;
-
-    @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
-    private int lockLayersMax = 7;
-
-    @MinNumber(1)
-    @MaxNumber(512)
-    @Desc("The rarity of this biome (integer)")
-    private int rarity = 1;
-
-    @Desc("A color for visualizing this biome with a color. I.e. #F13AF5. This will show up on the map.")
-    private String color = null;
-
-    @Required
-    @Desc("The raw derivative of this biome. This is required or the terrain will not properly generate. Use any vanilla biome type. Look in examples/biome-list.txt")
-    private Biome derivative = Biome.THE_VOID;
-
-    @Required
-    @Desc("Override the derivative when vanilla places structures to this derivative. This is useful for example if you have an ocean biome, but you have set the derivative to desert to get a brown-ish color. To prevent desert structures from spawning on top of your ocean, you can set your vanillaDerivative to ocean, to allow for vanilla structures. Not defining this value will simply select the derivative.")
-    private Biome vanillaDerivative = null;
-
-    @ArrayType(min = 1, type = Biome.class)
-    @Desc("You can instead specify multiple biome derivatives to randomly scatter colors in this biome")
-    private KList<Biome> biomeScatter = new KList<>();
-
-    @ArrayType(min = 1, type = Biome.class)
-    @Desc("Since 1.13 supports 3D biomes, you can add different derivative colors for anything above the terrain. (Think swampy tree leaves with a desert looking grass surface)")
-    private KList<Biome> biomeSkyScatter = new KList<>();
-
-    @DependsOn({"children"})
-    @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, how much smaller will it be (inside of this biome). Higher values means a smaller biome relative to this biome's size. Set higher than 1.0 and below 3.0 for best results.")
-    private double childShrinkFactor = 1.5;
-
-    @DependsOn({"children"})
-    @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
-    private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
-
-    @RegistryListBiome
-    @ArrayType(min = 1, type = String.class)
-    @Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 9 biomes down the tree.")
-    private KList<String> children = new KList<>();
-
-    @ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
-    @Desc("Jigsaw structures")
-    private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
-
-    @RegistryListBiome
-    @Desc("The carving biome. If specified the biome will be used when under a carving instead of this current biome.")
-    private String carvingBiome = "";
-
-    @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
-    private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
-
-    @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
-    private IrisBiomePaletteLayer wall = new IrisBiomePaletteLayer().zero();
-
-    @Required
-    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
-    @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
-    private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
-
-    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
-    @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
-    private KList<IrisBiomePaletteLayer> seaLayers = new KList<>();
-
-    @ArrayType(min = 1, type = IrisDecorator.class)
-    @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
-    private KList<IrisDecorator> decorators = new KList<>();
-
-    @ArrayType(min = 1, type = IrisObjectPlacement.class)
-    @Desc("Objects define what schematics (iob files) iris will place in this biome")
-    private KList<IrisObjectPlacement> objects = new KList<>();
-
-    @Required
-    @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
-    @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
-    private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
-
-    @ArrayType(min = 1, type = IrisDepositGenerator.class)
-    @Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
-    private KList<IrisDepositGenerator> deposits = new KList<>();
-
-    private transient InferredType inferredType;
-
+    private static final BlockData BARRIER = Material.BARRIER.createBlockData();
     private final transient AtomicCache<KMap<String, IrisBiomeGeneratorLink>> genCache = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMax = new AtomicCache<>();
     private final transient AtomicCache<KMap<String, Integer>> genCacheMin = new AtomicCache<>();
-    private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>(false);
-    private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>(false);
+    private final transient AtomicCache<KList<IrisObjectPlacement>> surfaceObjectsCache = new AtomicCache<>();
+    private final transient AtomicCache<KList<IrisObjectPlacement>> carveObjectsCache = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColor = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorObjectDensity = new AtomicCache<>();
     private final transient AtomicCache<Color> cacheColorDecoratorLoad = new AtomicCache<>();
@@ -197,6 +81,106 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private final transient AtomicCache<KList<IrisBiome>> realChildren = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerHeightGenerators = new AtomicCache<>();
     private final transient AtomicCache<KList<CNG>> layerSeaHeightGenerators = new AtomicCache<>();
+    @MinNumber(2)
+    @Required
+    @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
+    private String name = "A Biome";
+    @ArrayType(min = 1, type = IrisBiomeCustom.class)
+    @Desc("If the biome type custom is defined, specify this")
+    private KList<IrisBiomeCustom> customDerivitives;
+    @Desc("Spawn Entities in this area over time. Iris will continually replenish these mobs just like vanilla does.")
+    @ArrayType(min = 1, type = String.class)
+    @RegistryListResource(IrisSpawner.class)
+    private KList<String> entitySpawners = new KList<>();
+    @Desc("Add random chances for terrain features")
+    @ArrayType(min = 1, type = IrisFeaturePotential.class)
+    private KList<IrisFeaturePotential> features = new KList<>();
+    @ArrayType(min = 1, type = IrisEffect.class)
+    @Desc("Effects are ambient effects such as potion effects, random sounds, or even particles around each player. All of these effects are played via packets so two players won't see/hear each others effects.\nDue to performance reasons, effects will play around the player even if where the effect was played is no longer in the biome the player is in.")
+    private KList<IrisEffect> effects = new KList<>();
+    @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
+    @Desc("This changes the dispersion of the biome colors if multiple derivatives are chosen.")
+    private IrisGeneratorStyle biomeStyle = NoiseStyle.SIMPLEX.style();
+    @ArrayType(min = 1, type = IrisBlockDrops.class)
+    @Desc("Define custom block drops for this biome")
+    private KList<IrisBlockDrops> blockDrops = new KList<>();
+    @Desc("Reference loot tables in this area")
+    private IrisLootReference loot = new IrisLootReference();
+    @MinNumber(0.0001)
+    @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
+    @Desc("This zooms in the biome colors if multiple derivatives are chosen")
+    private double biomeZoom = 1;
+    @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
+    private boolean lockLayers = false;
+    @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
+    private int lockLayersMax = 7;
+    @Desc("Carving configuration for the dimension")
+    private IrisCarving carving = new IrisCarving();
+    @Desc("Configuration of fluid bodies such as rivers & lakes")
+    private IrisFluidBodies fluidBodies = new IrisFluidBodies();
+    @MinNumber(1)
+    @MaxNumber(512)
+    @Desc("The rarity of this biome (integer)")
+    private int rarity = 1;
+    @Desc("A color for visualizing this biome with a color. I.e. #F13AF5. This will show up on the map.")
+    private String color = null;
+    @Required
+    @Desc("The raw derivative of this biome. This is required or the terrain will not properly generate. Use any vanilla biome type. Look in examples/biome-list.txt")
+    private Biome derivative = Biome.THE_VOID;
+    @Required
+    @Desc("Override the derivative when vanilla places structures to this derivative. This is useful for example if you have an ocean biome, but you have set the derivative to desert to get a brown-ish color. To prevent desert structures from spawning on top of your ocean, you can set your vanillaDerivative to ocean, to allow for vanilla structures. Not defining this value will simply select the derivative.")
+    private Biome vanillaDerivative = null;
+    @ArrayType(min = 1, type = Biome.class)
+    @Desc("You can instead specify multiple biome derivatives to randomly scatter colors in this biome")
+    private KList<Biome> biomeScatter = new KList<>();
+    @ArrayType(min = 1, type = Biome.class)
+    @Desc("Since 1.13 supports 3D biomes, you can add different derivative colors for anything above the terrain. (Think swampy tree leaves with a desert looking grass surface)")
+    private KList<Biome> biomeSkyScatter = new KList<>();
+    @DependsOn({"children"})
+    @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, how much smaller will it be (inside of this biome). Higher values means a smaller biome relative to this biome's size. Set higher than 1.0 and below 3.0 for best results.")
+    private double childShrinkFactor = 1.5;
+    @DependsOn({"children"})
+    @Desc("If this biome has children biomes, and the gen layer chooses one of this biomes children, How will it be shaped?")
+    private IrisGeneratorStyle childStyle = NoiseStyle.CELLULAR_IRIS_DOUBLE.style();
+    @RegistryListResource(IrisBiome.class)
+    @ArrayType(min = 1, type = String.class)
+    @Desc("List any biome names (file names without.json) here as children. Portions of this biome can sometimes morph into their children. Iris supports cyclic relationships such as A > B > A > B. Iris will stop checking 9 biomes down the tree.")
+    private KList<String> children = new KList<>();
+    @ArrayType(min = 1, type = IrisJigsawStructurePlacement.class)
+    @Desc("Jigsaw structures")
+    private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
+    @RegistryListResource(IrisBiome.class)
+    @Desc("The carving biome. If specified the biome will be used when under a carving instead of this current biome.")
+    private String carvingBiome = "";
+    @Desc("The default slab if iris decides to place a slab in this biome. Default is no slab.")
+    private IrisBiomePaletteLayer slab = new IrisBiomePaletteLayer().zero();
+    @Desc("The default wall if iris decides to place a wall higher than 2 blocks (steep hills or possibly cliffs)")
+    private IrisBiomePaletteLayer wall = new IrisBiomePaletteLayer().zero();
+    @Required
+    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
+    private KList<IrisBiomePaletteLayer> layers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
+    @Required
+    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
+    private KList<IrisBiomePaletteLayer> caveCeilingLayers = new KList<IrisBiomePaletteLayer>().qadd(new IrisBiomePaletteLayer());
+    @ArrayType(min = 1, type = IrisBiomePaletteLayer.class)
+    @Desc("This defines the layers of materials in this biome. Each layer has a palette and min/max height and some other properties. Usually a grassy/sandy layer then a dirt layer then a stone layer. Iris will fill in the remaining blocks below your layers with stone.")
+    private KList<IrisBiomePaletteLayer> seaLayers = new KList<>();
+    @ArrayType(min = 1, type = IrisDecorator.class)
+    @Desc("Decorators are used for things like tall grass, bisected flowers, and even kelp or cactus (random heights)")
+    private KList<IrisDecorator> decorators = new KList<>();
+    @ArrayType(min = 1, type = IrisObjectPlacement.class)
+    @Desc("Objects define what schematics (iob files) iris will place in this biome")
+    private KList<IrisObjectPlacement> objects = new KList<>();
+    @Required
+    @ArrayType(min = 1, type = IrisBiomeGeneratorLink.class)
+    @Desc("Generators for this biome. Multiple generators with different interpolation sizes will mix with other biomes how you would expect. This defines your biome height relative to the fluid height. Use negative for oceans.")
+    private KList<IrisBiomeGeneratorLink> generators = new KList<IrisBiomeGeneratorLink>().qadd(new IrisBiomeGeneratorLink());
+    @ArrayType(min = 1, type = IrisDepositGenerator.class)
+    @Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
+    private KList<IrisDepositGenerator> deposits = new KList<>();
+    private transient InferredType inferredType;
 
     public Biome getVanillaDerivative() {
         return vanillaDerivative == null ? derivative : vanillaDerivative;
@@ -249,7 +233,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }).get(loadKey);
     }
 
-    public IrisBiome getRealCarvingBiome(IrisDataManager data) {
+    public IrisBiome getRealCarvingBiome(IrisData data) {
         return realCarveBiome.aquire(() ->
         {
             IrisBiome biome = data.getBiomeLoader().load(getCarvingBiome());
@@ -292,7 +276,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         });
     }
 
-    public double getHeight(IrisAccess xg, double x, double z, long seed) {
+    public double getHeight(Engine xg, double x, double z, long seed) {
         double height = 0;
 
         for (IrisBiomeGeneratorLink i : generators) {
@@ -304,14 +288,14 @@ public class IrisBiome extends IrisRegistrant implements IRare {
 
     public CNG getBiomeGenerator(RNG random) {
         return biomeGenerator.aquire(() ->
-                biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length())));
+                biomeStyle.create(random.nextParallelRNG(213949 + 228888 + getRarity() + getName().length()), getLoader()));
     }
 
     public CNG getChildrenGenerator(RNG random, int sig, double scale) {
-        return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137)).bake().scale(scale).bake());
+        return childrenCell.aquire(() -> getChildStyle().create(random.nextParallelRNG(sig * 2137), getLoader()).bake().scale(scale).bake());
     }
 
-    public KList<BlockData> generateLayers(double wx, double wz, RNG random, int maxDepth, int height, IrisDataManager rdata, IrisComplex complex) {
+    public KList<BlockData> generateLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
         if (isLockLayers()) {
             return generateLockedLayers(wx, wz, random, maxDepth, height, rdata, complex);
         }
@@ -354,12 +338,68 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             if (data.size() >= maxDepth) {
                 break;
             }
+
+            if (dim.isExplodeBiomePalettes()) {
+                for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
+                    data.add(BARRIER);
+
+                    if (data.size() >= maxDepth) {
+                        break;
+                    }
+                }
+            }
         }
 
         return data;
     }
 
-    public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisDataManager rdata, IrisComplex complex) {
+    public KList<BlockData> generateCeilingLayers(IrisDimension dim, double wx, double wz, RNG random, int maxDepth, int height, IrisData rdata, IrisComplex complex) {
+        KList<BlockData> data = new KList<>();
+
+        if (maxDepth <= 0) {
+            return data;
+        }
+
+        for (int i = 0; i < caveCeilingLayers.size(); i++) {
+            CNG hgen = getLayerHeightGenerators(random, rdata).get(i);
+            double d = hgen.fit(caveCeilingLayers.get(i).getMinHeight(), caveCeilingLayers.get(i).getMaxHeight(), wx / caveCeilingLayers.get(i).getZoom(), wz / caveCeilingLayers.get(i).getZoom());
+
+            if (d <= 0) {
+                continue;
+            }
+
+            for (int j = 0; j < d; j++) {
+                if (data.size() >= maxDepth) {
+                    break;
+                }
+
+                try {
+                    data.add(getCaveCeilingLayers().get(i).get(random.nextParallelRNG(i + j), (wx + j) / caveCeilingLayers.get(i).getZoom(), j, (wz - j) / caveCeilingLayers.get(i).getZoom(), rdata));
+                } catch (Throwable e) {
+                    Iris.reportError(e);
+                    e.printStackTrace();
+                }
+            }
+
+            if (data.size() >= maxDepth) {
+                break;
+            }
+
+            if (dim.isExplodeBiomePalettes()) {
+                for (int j = 0; j < dim.getExplodeBiomePaletteSize(); j++) {
+                    data.add(BARRIER);
+
+                    if (data.size() >= maxDepth) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return data;
+    }
+
+    public KList<BlockData> generateLockedLayers(double wx, double wz, RNG random, int maxDepthf, int height, IrisData rdata, IrisComplex complex) {
         KList<BlockData> data = new KList<>();
         KList<BlockData> real = new KList<>();
         int maxDepth = Math.min(maxDepthf, getLockLayersMax());
@@ -419,7 +459,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         });
     }
 
-    public int getMaxWithObjectHeight(IrisDataManager data) {
+    public int getMaxWithObjectHeight(IrisData data) {
         return maxWithObjectHeight.aquire(() ->
         {
             int maxHeight = 0;
@@ -445,7 +485,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return this;
     }
 
-    public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisDataManager rdata) {
+    public KList<BlockData> generateSeaLayers(double wx, double wz, RNG random, int maxDepth, IrisData rdata) {
         KList<BlockData> data = new KList<>();
 
         for (int i = 0; i < seaLayers.size(); i++) {
@@ -477,7 +517,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return data;
     }
 
-    public KList<CNG> getLayerHeightGenerators(RNG rng, IrisDataManager rdata) {
+    public KList<CNG> getLayerHeightGenerators(RNG rng, IrisData rdata) {
         return layerHeightGenerators.aquire(() ->
         {
             KList<CNG> layerHeightGenerators = new KList<>();
@@ -492,7 +532,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         });
     }
 
-    public KList<CNG> getLayerSeaHeightGenerators(RNG rng, IrisDataManager data) {
+    public KList<CNG> getLayerSeaHeightGenerators(RNG rng, IrisData data) {
         return layerSeaHeightGenerators.aquire(() ->
         {
             KList<CNG> layerSeaHeightGenerators = new KList<>();
@@ -522,22 +562,8 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return inferredType.equals(InferredType.SEA);
     }
 
-    public boolean isLake() {
-        if (inferredType == null) {
-            return false;
-        }
-        return inferredType.equals(InferredType.LAKE);
-    }
-
-    public boolean isRiver() {
-        if (inferredType == null) {
-            return false;
-        }
-        return inferredType.equals(InferredType.RIVER);
-    }
-
     public boolean isAquatic() {
-        return isSea() || isLake() || isRiver();
+        return isSea();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -609,7 +635,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         return getBiomeGenerator(rng).fit(biomeScatter, x, y, z);
     }
 
-    public BlockData getSurfaceBlock(int x, int z, RNG rng, IrisDataManager idm) {
+    public BlockData getSurfaceBlock(int x, int z, RNG rng, IrisData idm) {
         if (getLayers().isEmpty()) {
             return B.get("AIR");
         }
@@ -671,5 +697,20 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         return Color.black;
+    }
+
+    @Override
+    public String getFolderName() {
+        return "biomes";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Biome";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

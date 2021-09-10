@@ -19,13 +19,19 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.noise.CellGenerator;
-import com.volmit.iris.engine.object.annotations.*;
-import com.volmit.iris.engine.object.common.IRare;
+import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
+import com.volmit.iris.util.json.JSONObject;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CellGenerator;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -42,65 +48,50 @@ import java.util.List;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisGenerator extends IrisRegistrant {
+    private final transient AtomicCache<CellGenerator> cellGen = new AtomicCache<>();
     @MinNumber(0.001)
     @Desc("The zoom or frequency.")
     private double zoom = 1;
-
     @MinNumber(0)
     @Desc("The opacity, essentially a multiplier on the output.")
     private double opacity = 1;
-
     @Desc("Multiply the compsites instead of adding them")
     private boolean multiplicitive = false;
-
     @MinNumber(0.001)
     @Desc("The size of the cell fractures")
     private double cellFractureZoom = 1D;
-
     @MinNumber(0)
     @Desc("Cell Fracture Coordinate Shuffling")
     private double cellFractureShuffle = 12D;
-
     @Desc("The height of fracture cells. Set to 0 to disable")
     private double cellFractureHeight = 0D;
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("How big are the cells (X,Z) relative to the veins that touch them. Between 0 and 1. 0.1 means thick veins, small cells.")
     private double cellPercentSize = 0.75D;
-
     @Desc("The offset to shift this noise x")
     private double offsetX = 0;
-
     @Desc("The offset to shift this noise z")
     private double offsetZ = 0;
-
     @Required
     @Desc("The seed for this generator")
     private long seed = 1;
-
     @Required
     @Desc("The interpolator to use when smoothing this generator into other regions & generators")
     private IrisInterpolator interpolator = new IrisInterpolator();
-
     @MinNumber(0)
     @MaxNumber(8192)
     @Desc("Cliff Height Max. Disable with 0 for min and max")
     private double cliffHeightMax = 0;
-
     @MinNumber(0)
     @MaxNumber(8192)
     @Desc("Cliff Height Min. Disable with 0 for min and max")
     private double cliffHeightMin = 0;
-
     @ArrayType(min = 1, type = IrisNoiseGenerator.class)
     @Desc("The list of noise gens this gen contains.")
     private KList<IrisNoiseGenerator> composite = new KList<>();
-
     @Desc("The noise gen for cliff height.")
     private IrisNoiseGenerator cliffHeightGenerator = new IrisNoiseGenerator();
-
-    private final transient AtomicCache<CellGenerator> cellGen = new AtomicCache<>();
 
     public double getMax() {
         return opacity;
@@ -210,10 +201,15 @@ public class IrisGenerator extends IrisRegistrant {
     }
 
     public double getHeight(double rx, double rz, long superSeed) {
-        return getHeight(rx, 0, rz, superSeed);
+        return getHeight(rx, 0, rz, superSeed, true);
     }
 
+
     public double getHeight(double rx, double ry, double rz, long superSeed) {
+        return getHeight(rx, ry, rz, superSeed, false);
+    }
+
+    public double getHeight(double rx, double ry, double rz, long superSeed, boolean no3d) {
         if (composite.isEmpty()) {
             Iris.warn("Useless Generator: Composite is empty in " + getLoadKey());
             return 0;
@@ -225,17 +221,17 @@ public class IrisGenerator extends IrisRegistrant {
 
         for (IrisNoiseGenerator i : composite) {
             if (multiplicitive) {
-                h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+                h *= i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             } else {
                 tp += i.getOpacity();
-                h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+                h += i.getNoise(seed + superSeed + hc, (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
             }
         }
 
         double v = multiplicitive ? h * opacity : (h / tp) * opacity;
 
         if (Double.isNaN(v)) {
-            Iris.warn("Nan value on gen: " + getLoadKey() + ": H = " + h + " TP = " + tp + " OPACITY = " + opacity + " ZOOM = " + zoom);
+            v = 0;
         }
 
         v = hasCliffs() ? cliff(rx, rz, v, superSeed + 294596 + hc) : v;
@@ -255,7 +251,7 @@ public class IrisGenerator extends IrisRegistrant {
 
     public double getCliffHeight(double rx, double rz, double superSeed) {
         int hc = (int) ((cliffHeightMin * 10) + 10 + cliffHeightMax * seed + offsetX + offsetZ);
-        double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom);
+        double h = cliffHeightGenerator.getNoise((long) (seed + superSeed + hc), (rx + offsetX) / zoom, (rz + offsetZ) / zoom, getLoader());
         return IrisInterpolation.lerp(cliffHeightMin, cliffHeightMax, h);
     }
 
@@ -277,5 +273,20 @@ public class IrisGenerator extends IrisRegistrant {
         }
 
         return g;
+    }
+
+    @Override
+    public String getFolderName() {
+        return "generators";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Generator";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

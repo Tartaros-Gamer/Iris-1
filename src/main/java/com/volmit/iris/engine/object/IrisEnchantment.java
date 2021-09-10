@@ -23,6 +23,7 @@ import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,6 +35,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.lang.reflect.Field;
 
+@Snippet("enchantment")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

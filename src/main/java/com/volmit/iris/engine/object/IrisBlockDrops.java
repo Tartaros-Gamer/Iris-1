@@ -18,11 +18,12 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
@@ -32,33 +33,29 @@ import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 
+@Snippet("block-drops")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents a block drop list")
 @Data
 public class IrisBlockDrops {
+    private final transient AtomicCache<KList<BlockData>> data = new AtomicCache<>();
     @Required
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Desc("The blocks that drop loot")
     private KList<IrisBlockData> blocks = new KList<>();
-
     @Desc("If exact blocks is set to true, minecraft:barrel[axis=x] will only drop for that axis. When exact is false (default) any barrel will drop the defined drops.")
     private boolean exactBlocks = false;
-
     @Desc("Add in specific items to drop")
     @ArrayType(min = 1, type = IrisLoot.class)
     private KList<IrisLoot> drops = new KList<>();
-
     @Desc("If this is in a biome, setting skipParents to true will ignore the drops in the region and dimension for this block type. The default (false) will allow all three nodes to fire and add to a list of drops.")
     private boolean skipParents = false;
-
     @Desc("Removes the default vanilla block drops and only drops the given items & any parent loot tables specified for this block type.")
     private boolean replaceVanillaDrops = false;
 
-    private final transient AtomicCache<KList<BlockData>> data = new AtomicCache<>();
-
-    public boolean shouldDropFor(BlockData data, IrisDataManager rdata) {
+    public boolean shouldDropFor(BlockData data, IrisData rdata) {
         KList<BlockData> list = this.data.aquire(() ->
         {
             KList<BlockData> b = new KList<>();

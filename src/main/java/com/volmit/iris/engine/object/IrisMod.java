@@ -18,8 +18,16 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -48,22 +56,22 @@ public class IrisMod extends IrisRegistrant {
     private int overrideFluidHeight = -1;
 
     @Desc("A list of biomes to remove")
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> removeBiomes = new KList<>();
 
     @Desc("A list of objects to remove")
-    @RegistryListObject
+    @RegistryListResource(IrisObject.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> removeObjects = new KList<>();
 
     @Desc("A list of regions to remove")
-    @RegistryListRegion
+    @RegistryListResource(IrisRegion.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> removeRegions = new KList<>();
 
     @Desc("A list of regions to inject")
-    @RegistryListRegion
+    @RegistryListResource(IrisRegion.class)
     @ArrayType(type = String.class, min = 1)
     private KList<String> injectRegions = new KList<>();
 
@@ -98,4 +106,19 @@ public class IrisMod extends IrisRegistrant {
     @ArrayType(min = 1, type = IrisModNoiseStyleReplacer.class)
     @Desc("Replace noise styles with other styles")
     private KList<IrisModNoiseStyleReplacer> styleReplacers = new KList<>();
+
+    @Override
+    public String getFolderName() {
+        return "mods";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Mod";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
+    }
 }

@@ -19,12 +19,15 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.core.loader.IrisRegistrant;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListObject;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -43,7 +46,7 @@ import java.io.IOException;
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class IrisJigsawPiece extends IrisRegistrant {
-    @RegistryListObject
+    @RegistryListResource(IrisObject.class)
     @Required
     @Desc("The object this piece represents")
     private String object = "";
@@ -120,5 +123,20 @@ public class IrisJigsawPiece extends IrisRegistrant {
 
     public ObjectPlaceMode getPlaceMode() {
         return getPlacementOptions().getMode();
+    }
+
+    @Override
+    public String getFolderName() {
+        return "jigsaw-pieces";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Jigsaw Piece";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

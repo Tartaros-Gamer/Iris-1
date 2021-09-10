@@ -18,13 +18,20 @@
 
 package com.volmit.iris.engine.jigsaw;
 
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.core.tools.IrisWorlds;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.IrisAccess;
-import com.volmit.iris.engine.object.*;
-import com.volmit.iris.engine.object.common.IObjectPlacer;
-import com.volmit.iris.engine.object.tile.TileData;
+import com.volmit.iris.engine.object.IObjectPlacer;
+import com.volmit.iris.engine.object.InventorySlotType;
+import com.volmit.iris.engine.object.IrisJigsawPiece;
+import com.volmit.iris.engine.object.IrisJigsawPieceConnector;
+import com.volmit.iris.engine.object.IrisLootTable;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObjectRotation;
+import com.volmit.iris.engine.object.IrisObjectTranslate;
+import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.TileData;
+import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.AxisAlignedBB;
 import com.volmit.iris.util.math.BlockPosition;
@@ -44,9 +51,10 @@ import org.bukkit.util.BlockVector;
 public class PlannedPiece {
     private IrisPosition position;
     private IrisObject object;
+    private IrisObject ogObject;
     private IrisJigsawPiece piece;
     private IrisObjectRotation rotation;
-    private IrisDataManager data;
+    private IrisData data;
     private KList<IrisJigsawPieceConnector> connected;
     private boolean dead = false;
     private AxisAlignedBB box;
@@ -65,10 +73,12 @@ public class PlannedPiece {
         this.position = position;
         this.data = piece.getLoader();
         this.setRotation(rot);
+        this.ogObject = data.getObjectLoader().load(piece.getObject());
         this.object = structure.rotated(piece, rotation);
         this.piece = rotation.rotateCopy(piece);
         this.piece.setLoadKey(piece.getLoadKey());
         this.object.setLoadKey(piece.getObject());
+        this.ogObject.setLoadKey(piece.getObject());
         this.connected = new KList<>();
     }
 
@@ -140,27 +150,30 @@ public class PlannedPiece {
     }
 
     public void place(World world) {
-        IrisAccess a = IrisWorlds.access(world);
+        PlatformChunkGenerator a = IrisToolbelt.access(world);
 
         int minY = 0;
         if (a != null) {
-            minY = a.getCompound().getDefaultEngine().getMinHeight();
+            minY = a.getEngine().getMinHeight();
 
-            if (!a.getCompound().getRootDimension().isBedrock())
+            if (!a.getEngine().getDimension().isBedrock())
                 minY--; //If the dimension has no bedrock, allow it to go a block lower
         }
 
-        getPiece().getPlacementOptions().getRotation().setEnabled(false);
+        getPiece().getPlacementOptions().setTranslate(new IrisObjectTranslate());
+        getPiece().getPlacementOptions().setRotation(rotation);
         int finalMinY = minY;
         RNG rng = getStructure().getRng().nextParallelRNG(37555);
-        getObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
+
+        // TODO: REAL CLASSES!!!!!!!
+        getOgObject().place(position.getX() + getObject().getCenter().getBlockX(), position.getY() + getObject().getCenter().getBlockY(), position.getZ() + getObject().getCenter().getBlockZ(), new IObjectPlacer() {
             @Override
-            public int getHighest(int x, int z) {
+            public int getHighest(int x, int z, IrisData data) {
                 return position.getY();
             }
 
             @Override
-            public int getHighest(int x, int z, boolean ignoreFluid) {
+            public int getHighest(int x, int z, IrisData data, boolean ignoreFluid) {
                 return position.getY();
             }
 
@@ -178,7 +191,7 @@ public class PlannedPiece {
 
                     IrisLootTable table = getPiece().getPlacementOptions().getTable(block.getBlockData(), getData());
                     if (table == null) return;
-                    Engine engine = a.getCompound().getEngineForHeight(y);
+                    Engine engine = a.getEngine();
                     engine.addItems(false, ((InventoryHolder) block.getState()).getInventory(),
                             rng.nextParallelRNG(BlockPosition.toLong(x, y, z)),
                             new KList<>(table), InventorySlotType.STORAGE, x, y, z, 15);
@@ -192,6 +205,11 @@ public class PlannedPiece {
 
             @Override
             public boolean isPreventingDecay() {
+                return false;
+            }
+
+            @Override
+            public boolean isCarved(int x, int y, int z) {
                 return false;
             }
 

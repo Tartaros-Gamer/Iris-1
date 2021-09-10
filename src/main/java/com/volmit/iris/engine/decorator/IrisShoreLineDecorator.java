@@ -18,18 +18,18 @@
 
 package com.volmit.iris.engine.decorator;
 
-import com.volmit.iris.engine.cache.Cache;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.hunk.Hunk;
-import com.volmit.iris.engine.object.DecorationPart;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
 import com.volmit.iris.util.documentation.BlockCoordinates;
+import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 
 public class IrisShoreLineDecorator extends IrisEngineDecorator {
     public IrisShoreLineDecorator(Engine engine) {
-        super(engine, "Shore Line", DecorationPart.SHORE_LINE);
+        super(engine, "Shore Line", IrisDecorationPart.SHORE_LINE);
     }
 
     @BlockCoordinates

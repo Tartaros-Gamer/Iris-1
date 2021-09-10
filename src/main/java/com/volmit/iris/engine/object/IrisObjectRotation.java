@@ -20,6 +20,7 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,11 +29,16 @@ import lombok.experimental.Accessors;
 import org.bukkit.Axis;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.*;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.block.data.Orientable;
+import org.bukkit.block.data.Rotatable;
 import org.bukkit.util.BlockVector;
 
 import java.util.List;
 
+@Snippet("object-rotator")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -50,6 +56,28 @@ public class IrisObjectRotation {
 
     @Desc("The z axis rotation")
     private IrisAxisRotationClamp zAxis = new IrisAxisRotationClamp();
+
+    public static IrisObjectRotation of(double x, double y, double z) {
+        IrisObjectRotation rt = new IrisObjectRotation();
+        IrisAxisRotationClamp rtx = new IrisAxisRotationClamp();
+        IrisAxisRotationClamp rty = new IrisAxisRotationClamp();
+        IrisAxisRotationClamp rtz = new IrisAxisRotationClamp();
+        rt.setEnabled(x != 0 || y != 0 || z != 0);
+        rt.setXAxis(rtx);
+        rt.setYAxis(rty);
+        rt.setZAxis(rtz);
+        rtx.setEnabled(x != 0);
+        rty.setEnabled(y != 0);
+        rtz.setEnabled(z != 0);
+        rtx.setInterval(90);
+        rty.setInterval(90);
+        rtz.setInterval(90);
+        rtx.minMax(x);
+        rty.minMax(y);
+        rtz.minMax(z);
+
+        return rt;
+    }
 
     public double getYRotation(int spin) {
         return getRotation(spin, yAxis);
@@ -81,7 +109,6 @@ public class IrisObjectRotation {
         return piece;
     }
 
-
     public BlockVector rotate(BlockVector direction) {
         return rotate(direction, 0, 0, 0);
     }
@@ -89,28 +116,6 @@ public class IrisObjectRotation {
     public IrisDirection rotate(IrisDirection direction) {
         BlockVector v = rotate(direction.toVector().toBlockVector());
         return IrisDirection.closest(v);
-    }
-
-    public static IrisObjectRotation of(double x, double y, double z) {
-        IrisObjectRotation rt = new IrisObjectRotation();
-        IrisAxisRotationClamp rtx = new IrisAxisRotationClamp();
-        IrisAxisRotationClamp rty = new IrisAxisRotationClamp();
-        IrisAxisRotationClamp rtz = new IrisAxisRotationClamp();
-        rt.setEnabled(x != 0 || y != 0 || z != 0);
-        rt.setXAxis(rtx);
-        rt.setYAxis(rty);
-        rt.setZAxis(rtz);
-        rtx.setEnabled(x != 0);
-        rty.setEnabled(y != 0);
-        rtz.setEnabled(z != 0);
-        rtx.setInterval(90);
-        rty.setInterval(90);
-        rtz.setInterval(90);
-        rtx.minMax(x);
-        rty.minMax(y);
-        rtz.minMax(z);
-
-        return rt;
     }
 
     public double getRotation(int spin, IrisAxisRotationClamp clamp) {
@@ -394,7 +399,6 @@ public class IrisObjectRotation {
                 v.rotateAroundY(getYRotation(spiny));
             }
         }
-
 
         return v;
     }

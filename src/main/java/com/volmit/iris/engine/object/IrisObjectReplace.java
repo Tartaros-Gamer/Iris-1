@@ -18,46 +18,48 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.core.IrisDataManager;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.noise.CNG;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.noise.CNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
 
+@Snippet("object-block-replacer")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Find and replace object materials")
 @Data
 public class IrisObjectReplace {
+    private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
+    private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
+    private final transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
     @ArrayType(min = 1, type = IrisBlockData.class)
     @Required
     @Desc("Find this block")
     private KList<IrisBlockData> find = new KList<>();
-
     @Required
     @Desc("Replace it with this block palette")
     private IrisMaterialPalette replace = new IrisMaterialPalette();
-
     @Desc("Exactly match the block data or not")
     private boolean exact = false;
-
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("Modifies the chance the block is replaced")
     private float chance = 1;
 
-    private final transient AtomicCache<CNG> replaceGen = new AtomicCache<>();
-    private final transient AtomicCache<KList<BlockData>> findData = new AtomicCache<>();
-    private final transient AtomicCache<KList<BlockData>> replaceData = new AtomicCache<>();
-
-    public KList<BlockData> getFind(IrisDataManager rdata) {
+    public KList<BlockData> getFind(IrisData rdata) {
         return findData.aquire(() ->
         {
             KList<BlockData> b = new KList<>();
@@ -74,7 +76,7 @@ public class IrisObjectReplace {
         });
     }
 
-    public BlockData getReplace(RNG seed, double x, double y, double z, IrisDataManager rdata) {
+    public BlockData getReplace(RNG seed, double x, double y, double z, IrisData rdata) {
         return getReplace().get(seed, x, y, z, rdata);
     }
 }

@@ -19,11 +19,12 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
-import com.volmit.iris.engine.cache.AtomicCache;
+import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -36,31 +37,27 @@ import org.bukkit.potion.PotionEffectType;
 @NoArgsConstructor
 @AllArgsConstructor
 
+@Snippet("potion-effect")
 @Desc("An iris potion effect")
 @Data
 public class IrisPotionEffect {
+    private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
     @Required
     @Desc("The potion effect to apply in this area")
     private String potionEffect = "";
-
     @Required
     @MinNumber(-1)
     @MaxNumber(1024)
     @Desc("The Potion Strength or -1 to disable")
     private int strength = -1;
-
     @Required
     @MinNumber(1)
     @Desc("The time the potion will last for")
     private int ticks = 200;
-
     @Desc("Is the effect ambient")
     private boolean ambient = false;
-
     @Desc("Is the effect showing particles")
     private boolean particles = true;
-
-    private final transient AtomicCache<PotionEffectType> pt = new AtomicCache<>();
 
     public PotionEffectType getRealType() {
         return pt.aquire(() ->

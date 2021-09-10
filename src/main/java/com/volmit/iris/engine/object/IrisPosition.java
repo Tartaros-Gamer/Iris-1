@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,6 +29,7 @@ import org.bukkit.World;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
+@Snippet("position-3d")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -55,6 +57,11 @@ public class IrisPosition {
         this(v.getBlockX(), v.getBlockY(), v.getBlockZ());
     }
 
+    public IrisPosition(double x, double y, double z) {
+        this((int) x, (int) y, (int) z);
+    }
+
+
     public IrisPosition add(IrisPosition relativePosition) {
         return new IrisPosition(relativePosition.x + x, relativePosition.y + y, relativePosition.z + z);
     }
@@ -74,5 +81,13 @@ public class IrisPosition {
     @Override
     public String toString() {
         return "[" + getX() + "," + getY() + "," + getZ() + "]";
+    }
+
+    public boolean isLongerThan(IrisPosition s, int maxLength) {
+        return Math.abs(Math.pow(s.x - x, 2) + Math.pow(s.y - y, 2) + Math.pow(s.z - z, 2)) > maxLength * maxLength;
+    }
+
+    public Vector toVector() {
+        return new Vector(x, y, z);
     }
 }

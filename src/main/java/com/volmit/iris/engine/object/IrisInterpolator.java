@@ -18,33 +18,37 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.function.NoiseProvider;
+import com.volmit.iris.util.interpolation.InterpolationMethod;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+@Snippet("interpolator")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Configures rotation for iris")
 @Data
 public class IrisInterpolator {
+    public static final IrisInterpolator DEFAULT = new IrisInterpolator();
+
     @Required
     @Desc("The interpolation method when two biomes use different heights but this same generator")
-    private InterpolationMethod function = InterpolationMethod.BICUBIC;
+    private InterpolationMethod function = InterpolationMethod.BILINEAR_STARCAST_6;
 
     @Required
     @MinNumber(1)
     @MaxNumber(8192)
     @Desc("The range checked horizontally. Smaller ranges yeild more detail but are not as smooth.")
-    private double horizontalScale = 3;
+    private double horizontalScale = 7;
 
     public double interpolate(double x, double z, NoiseProvider provider) {
         return interpolate((int) Math.round(x), (int) Math.round(z), provider);

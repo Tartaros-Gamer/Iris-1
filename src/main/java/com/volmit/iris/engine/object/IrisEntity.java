@@ -19,14 +19,20 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.RegistryListMythical;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.RegistryListSpecialEntity;
 import com.volmit.iris.engine.object.annotations.Required;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.format.C;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.plugin.Chunks;
+import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.AllArgsConstructor;
@@ -37,17 +43,28 @@ import lombok.experimental.Accessors;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.attribute.Attributable;
-import org.bukkit.entity.*;
+import org.bukkit.entity.Ageable;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
+import org.bukkit.entity.Panda;
 import org.bukkit.entity.Panda.Gene;
+import org.bukkit.entity.Villager;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.loot.LootContext;
 import org.bukkit.loot.LootTable;
 import org.bukkit.loot.Lootable;
+import org.bukkit.util.Vector;
 
 import java.util.Collection;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("ALL")
@@ -62,10 +79,6 @@ public class IrisEntity extends IrisRegistrant {
     @Required
     @Desc("The type of entity to spawn. To spawn a mythic mob, set this type to unknown and define mythic type.")
     private EntityType type = EntityType.UNKNOWN;
-
-    @RegistryListMythical
-    @Desc("The type of mythic mob (if mythic mobs is installed). If this is set, make sure to set 'type' to UNKNOWN")
-    private String mythicalType = "";
 
     @Desc("The custom name of this entity")
     private String customName = "";
@@ -95,7 +108,7 @@ public class IrisEntity extends IrisRegistrant {
     private boolean pickupItems = false;
 
     @Desc("Should this entity be removed when far away")
-    private boolean removable = true;
+    private boolean removable = false;
 
     @Desc("Entity helmet equipment")
     private IrisLoot helmet = null;
@@ -132,6 +145,9 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("If specified, this entity will spawn with an effect")
     private IrisEffect spawnEffect = null;
 
+    @Desc("Simply moves the entity from below the surface slowly out of the ground as a spawn-in effect")
+    private boolean spawnEffectRiseOutOfGround = false;
+
     @Desc("The main gene for a panda if the entity type is a panda")
     private Gene pandaMainGene = Gene.NORMAL;
 
@@ -141,22 +157,89 @@ public class IrisEntity extends IrisRegistrant {
     @Desc("The this entity is ageable, set it's baby status")
     private boolean baby = false;
 
+    @Desc("If the entity should never be culled. Useful for Jigsaws")
+    private boolean keepEntity = false;
+
+    @Desc("The surface type to spawn this mob on")
+    private IrisSurface surface = IrisSurface.LAND;
+
+    @RegistryListSpecialEntity
+    @Desc("Create a mob from another plugin, such as Mythic Mobs. Should be in the format of a namespace of PluginName:MobName")
+    private String specialType = "";
+
+    @Desc("Set the entity type to UNKNOWN, then define a script here which ends with the entity variable (the result). You can use Iris.getLocation() to find the target location. You can spawn any entity this way.")
+    @RegistryListResource(IrisScript.class)
+    private String spawnerScript = "";
+
+    @ArrayType(min = 1, type = String.class)
+    @Desc("Set the entity type to UNKNOWN, then define a script here. You can use Iris.getLocation() to find the target location. You can spawn any entity this way.")
+    @RegistryListResource(IrisScript.class)
+    private KList<String> postSpawnScripts = new KList<>();
+
     public Entity spawn(Engine gen, Location at) {
         return spawn(gen, at, new RNG(at.hashCode()));
     }
 
     public Entity spawn(Engine gen, Location at, RNG rng) {
-        Entity e = doSpawn(at);
+        if (!Chunks.isSafe(at)) {
+            return null;
+        }
+        if (isSpawnEffectRiseOutOfGround()) {
+            AtomicReference<Location> f = new AtomicReference<>(at);
+            try {
+                J.sfut(() -> {
+                    if(Chunks.hasPlayersNearby(f.get()))
+                    {
+                        Location b = f.get().clone();
+                        Location start = new Location(b.getWorld(), b.getX(), b.getY() - 5, b.getZ());
+                        f.set(start);
+                    }
+                }).get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            at = f.get();
+        }
+
+        Entity ee = doSpawn(at);
+
+        if (ee == null && !Chunks.isSafe(at)) {
+            return null;
+        }
+
+        if (!spawnerScript.isEmpty() && ee == null) {
+            synchronized (this) {
+                gen.getExecution().getAPI().setLocation(at);
+                try {
+                    ee = (Entity) gen.getExecution().evaluate(spawnerScript);
+                } catch (Throwable ex) {
+                    Iris.error("You must return an Entity in your scripts to use entity scripts!");
+                    ex.printStackTrace();
+                }
+            }
+        }
+
+        if (ee == null) {
+            return null;
+        }
+
+        Entity e = ee;
         e.setCustomName(getCustomName() != null ? C.translateAlternateColorCodes('&', getCustomName()) : null);
         e.setCustomNameVisible(isCustomNameVisible());
         e.setGlowing(isGlowing());
         e.setGravity(isGravity());
         e.setInvulnerable(isInvulnerable());
         e.setSilent(isSilent());
+        e.setPersistent(isKeepEntity());
 
         int gg = 0;
         for (IrisEntity i : passengers) {
-            e.addPassenger(i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++)));
+            Entity passenger = i.spawn(gen, at, rng.nextParallelRNG(234858 + gg++));
+            if (!Bukkit.isPrimaryThread()) {
+                J.s(() -> e.addPassenger(passenger));
+            }
         }
 
         if (e instanceof Attributable) {
@@ -171,6 +254,7 @@ public class IrisEntity extends IrisRegistrant {
             Lootable l = (Lootable) e;
 
             if (getLoot().getTables().isNotEmpty()) {
+                Location finalAt = at;
                 l.setLootTable(new LootTable() {
                     @Override
                     public NamespacedKey getKey() {
@@ -183,7 +267,7 @@ public class IrisEntity extends IrisRegistrant {
 
                         for (String fi : getLoot().getTables()) {
                             IrisLootTable i = gen.getData().getLootLoader().load(fi);
-                            items.addAll(i.getLoot(gen.isStudio(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, at.getBlockX(), at.getBlockY(), at.getBlockZ(), 8, 4));
+                            items.addAll(i.getLoot(gen.isStudio(), false, rng.nextParallelRNG(345911), InventorySlotType.STORAGE, finalAt.getBlockX(), finalAt.getBlockY(), finalAt.getBlockZ(), 8, 4));
                         }
 
                         return items;
@@ -195,7 +279,7 @@ public class IrisEntity extends IrisRegistrant {
                             inventory.addItem(i);
                         }
 
-                        gen.getCompound().getEngine(at.getBlockY()).scramble(inventory, rng);
+                        gen.scramble(inventory, rng);
                     }
                 });
             }
@@ -259,43 +343,143 @@ public class IrisEntity extends IrisRegistrant {
             m.setAware(isAware());
         }
 
-        if(spawnEffect != null)
-        {
+        if (spawnEffect != null) {
             spawnEffect.apply(e);
         }
+
+        if (postSpawnScripts.isNotEmpty()) {
+            synchronized (this) {
+                gen.getExecution().getAPI().setLocation(at);
+                gen.getExecution().getAPI().setEntity(ee);
+
+                for (String i : postSpawnScripts) {
+                    gen.getExecution().execute(i);
+                }
+            }
+        }
+
+        Location finalAt1 = at;
+
+        J.s(() -> {
+            if (isSpawnEffectRiseOutOfGround() && e instanceof LivingEntity && Chunks.hasPlayersNearby(finalAt1)) {
+                Location start = finalAt1.clone();
+                e.setInvulnerable(true);
+                ((LivingEntity) e).setAI(false);
+                ((LivingEntity) e).setCollidable(false);
+                ((LivingEntity) e).setNoDamageTicks(100000);
+                AtomicInteger t = new AtomicInteger(0);
+                AtomicInteger v = new AtomicInteger(0);
+                v.set(J.sr(() -> {
+                    if (t.get() > 100) {
+                        J.csr(v.get());
+                        return;
+                    }
+
+                    t.incrementAndGet();
+                    if (e.getLocation().getBlock().getType().isSolid() || ((LivingEntity) e).getEyeLocation().getBlock().getType().isSolid()) {
+                        e.teleport(start.add(new Vector(0, 0.1, 0)));
+                        ItemStack itemCrackData = new ItemStack(((LivingEntity) e).getEyeLocation().clone().subtract(0, 2, 0).getBlock().getBlockData().getMaterial());
+                        e.getWorld().spawnParticle(Particle.ITEM_CRACK, ((LivingEntity) e).getEyeLocation(), 6, 0.2, 0.4, 0.2, 0.06f, itemCrackData);
+                        if (M.r(0.2)) {
+                            e.getWorld().playSound(e.getLocation(), Sound.BLOCK_CHORUS_FLOWER_GROW, 0.8f, 0.1f);
+                        }
+                    } else {
+                        J.csr(v.get());
+                        ((LivingEntity) e).setNoDamageTicks(0);
+                        ((LivingEntity) e).setCollidable(true);
+                        ((LivingEntity) e).setAI(true);
+                        e.setInvulnerable(false);
+                    }
+                }, 0));
+            }
+        });
+
 
         return e;
     }
 
+    private int surfaceY(Location l) {
+        int m = l.getBlockY();
+
+        while (m-- > 0) {
+            Location ll = l.clone();
+            ll.setY(m);
+
+            if (ll.getBlock().getType().isSolid()) {
+                return m;
+            }
+        }
+
+        return 0;
+    }
+
     private Entity doSpawn(Location at) {
+        if (!Chunks.isSafe(at)) {
+            return null;
+        }
+
+        if (type.equals(EntityType.UNKNOWN)) {
+            return null;
+        }
+
         if (!Bukkit.isPrimaryThread()) {
             // Someone called spawn (worldedit maybe?) on a non server thread
             // Due to the structure of iris, we will call it sync and busy wait until it's done.
             AtomicReference<Entity> ae = new AtomicReference<>();
-            J.s(() -> ae.set(doSpawn(at)));
+
+            try {
+                J.s(() -> ae.set(doSpawn(at)));
+            } catch (Throwable e) {
+                return null;
+            }
             PrecisionStopwatch p = PrecisionStopwatch.start();
 
             while (ae.get() == null) {
-                J.sleep(3);
+                J.sleep(25);
+
+                if (p.getMilliseconds() > 500) {
+                    return null;
+                }
             }
 
             return ae.get();
         }
 
-        if (isMythical()) {
-            return Iris.linkMythicMobs.spawn(getMythicalType(), at);
+        if (isSpecialType()) {
+            if (specialType.toLowerCase().startsWith("mythicmobs:")) {
+                return Iris.linkMythicMobs.spawnMob(specialType.substring(11), at);
+            } else {
+                Iris.warn("Invalid mob type to spawn: '" + specialType + "'!");
+                return null;
+            }
         }
 
-        return at.getWorld().spawnEntity(at, getType());
-    }
 
-    public boolean isMythical() {
-        return Iris.linkMythicMobs.supported() && !getMythicalType().trim().isEmpty();
+        return at.getWorld().spawnEntity(at, getType());
     }
 
     public boolean isCitizens() {
         return false;
 
         // TODO: return Iris.linkCitizens.supported() && someType is not empty;
+    }
+
+    public boolean isSpecialType() {
+        return specialType != null && !specialType.equals("");
+    }
+
+    @Override
+    public String getFolderName() {
+        return "entities";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "Entity";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

@@ -21,11 +21,13 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MinNumber;
 import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.math.RNG;
 import lombok.Data;
 
+@Snippet("potential-feature")
 @Data
-
 @Desc("Represents a potential Iris zone")
 public class IrisFeaturePotential {
     @MinNumber(0)
@@ -37,6 +39,7 @@ public class IrisFeaturePotential {
     @Desc("")
     private IrisFeature zone = new IrisFeature();
 
+    @ChunkCoordinates
     public boolean hasZone(RNG rng, int cx, int cz) {
         return rng.nextInt(rarity) == 0;
     }

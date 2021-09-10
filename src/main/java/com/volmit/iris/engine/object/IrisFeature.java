@@ -19,10 +19,17 @@
 package com.volmit.iris.engine.object;
 
 import com.google.gson.Gson;
-import com.volmit.iris.engine.cache.AtomicCache;
-import com.volmit.iris.engine.interpolation.InterpolationMethod;
-import com.volmit.iris.engine.interpolation.IrisInterpolation;
-import com.volmit.iris.engine.object.annotations.*;
+import com.volmit.iris.engine.data.cache.AtomicCache;
+import com.volmit.iris.engine.object.annotations.ArrayType;
+import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.MaxNumber;
+import com.volmit.iris.engine.object.annotations.MinNumber;
+import com.volmit.iris.engine.object.annotations.RegistryListResource;
+import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.interpolation.InterpolationMethod;
+import com.volmit.iris.util.interpolation.IrisInterpolation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,8 +38,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+@Snippet("feature")
 @Data
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Desc("Represents an Iris zone")
@@ -46,7 +53,7 @@ public class IrisFeature {
     @Desc("The chance an object that should be place actually will place. Set to below 1 to affect objects in this zone")
     private double objectChance = 1;
 
-    @RegistryListBiome
+    @RegistryListResource(IrisBiome.class)
     @Desc("Apply a custom biome here")
     private String customBiome = null;
 
@@ -81,7 +88,16 @@ public class IrisFeature {
     @Desc("Fracture the radius ring with additional noise")
     private IrisGeneratorStyle fractureRadius = null;
 
+    @RegistryListResource(IrisSpawner.class)
+    @ArrayType(min = 1, type = String.class)
+    @Desc("Within this noise feature, use the following spawners")
+    private KList<String> entitySpawners = new KList<>();
+
     private transient AtomicCache<Double> actualRadius = new AtomicCache<>();
+
+    public static IrisFeature read(DataInputStream s) throws IOException {
+        return new Gson().fromJson(s.readUTF(), IrisFeature.class);
+    }
 
     public double getActualRadius() {
         return actualRadius.aquire(() -> {
@@ -93,10 +109,6 @@ public class IrisFeature {
 
             return o + IrisInterpolation.getRealRadius(getInterpolator(), getInterpolationRadius());
         });
-    }
-
-    public static IrisFeature read(DataInputStream s) throws IOException {
-        return new Gson().fromJson(s.readUTF(), IrisFeature.class);
     }
 
     public void write(DataOutputStream s) throws IOException {

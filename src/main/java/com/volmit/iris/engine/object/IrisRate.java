@@ -19,12 +19,14 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.engine.object.annotations.Desc;
+import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Snippet("rate")
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
@@ -36,19 +38,20 @@ public class IrisRate {
     @Desc("The time interval. Leave blank for infinite 0 (meaning always spawn all the time)")
     private IrisDuration per = new IrisDuration();
 
-    public String toString()
-    {
+    public String toString() {
         return Form.f(amount) + "/" + per;
     }
 
-    public long getInterval()
-    {
+    public long getInterval() {
         long t = per.getMilliseconds() / (amount == 0 ? 1 : amount);
         return Math.abs(t <= 0 ? 1 : t);
     }
 
-    public ChronoLatch toChronoLatch()
-    {
+    public ChronoLatch toChronoLatch() {
         return new ChronoLatch(getInterval());
+    }
+
+    public boolean isInfinite() {
+        return per.toMilliseconds() == 0;
     }
 }
