@@ -18,20 +18,18 @@
 
 package com.volmit.iris.util.mantle;
 
-import com.volmit.iris.engine.object.IrisFeaturePositional;
+import com.volmit.iris.Iris;
+import com.volmit.iris.engine.EnginePanic;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.matter.IrisMatter;
 import com.volmit.iris.util.matter.Matter;
 import com.volmit.iris.util.matter.MatterSlice;
-import com.volmit.iris.util.matter.slices.ZoneMatter;
 import lombok.Getter;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -40,14 +38,12 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Mantle Chunks are fully atomic & thread safe
  */
 public class MantleChunk {
-    private static final ZoneMatter zm = new ZoneMatter();
     @Getter
     private final int x;
     @Getter
     private final int z;
     private final AtomicIntegerArray flags;
     private final AtomicReferenceArray<Matter> sections;
-    private final CopyOnWriteArrayList<IrisFeaturePositional> features;
 
     /**
      * Create a mantle chunk
@@ -58,7 +54,6 @@ public class MantleChunk {
     public MantleChunk(int sectionHeight, int x, int z) {
         sections = new AtomicReferenceArray<>(sectionHeight);
         flags = new AtomicIntegerArray(MantleFlag.values().length);
-        features = new CopyOnWriteArrayList<>();
         this.x = x;
         this.z = z;
 
@@ -84,15 +79,10 @@ public class MantleChunk {
         }
 
         for (int i = 0; i < s; i++) {
+            Iris.addPanic("read.section", "Section[" + i + "]");
             if (din.readBoolean()) {
-                sections.set(i, Matter.read(din));
+                sections.set(i, Matter.readDin(din));
             }
-        }
-
-        short v = din.readShort();
-
-        for (int i = 0; i < v; i++) {
-            features.add(zm.readNode(din));
         }
     }
 
@@ -196,12 +186,6 @@ public class MantleChunk {
                 dos.writeBoolean(false);
             }
         }
-
-        dos.writeShort(features.size());
-
-        for (IrisFeaturePositional i : features) {
-            zm.writeNode(i, dos);
-        }
     }
 
     private void trimSlice(int i) {
@@ -234,19 +218,19 @@ public class MantleChunk {
         }
     }
 
-    public void addFeature(IrisFeaturePositional t) {
-        features.add(t);
-    }
-
-    public List<IrisFeaturePositional> getFeatures() {
-        return features;
-    }
-
     public void deleteSlices(Class<?> c) {
         for (int i = 0; i < sections.length(); i++) {
             Matter m = sections.get(i);
             if (m != null && m.hasSlice(c)) {
                 m.deleteSlice(c);
+            }
+        }
+    }
+
+    public void trimSlices() {
+        for (int i = 0; i < sections.length(); i++) {
+            if (exists(i)) {
+                trimSlice(i);
             }
         }
     }

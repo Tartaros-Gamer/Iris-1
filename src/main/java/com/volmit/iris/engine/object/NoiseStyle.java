@@ -446,7 +446,6 @@ public enum NoiseStyle {
 
     @Desc("Vascular noise gets higher as the position nears a cell border. Cells are distorted using Iris styled wispy noise.")
     VASCULAR_IRIS_HALF(rng -> CNG.signatureHalf(rng, NoiseType.VASCULAR)),
-
     ;
 
     private final CNGFactory f;

@@ -19,6 +19,7 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterMarker;
 import com.volmit.iris.util.matter.Sliced;
 
@@ -28,12 +29,18 @@ import java.io.IOException;
 
 @Sliced
 public class MarkerMatter extends RawMatter<MatterMarker> {
+    public static final MatterMarker NONE = new MatterMarker("none");
     public static final MatterMarker CAVE_FLOOR = new MatterMarker("cave_floor");
     public static final MatterMarker CAVE_CEILING = new MatterMarker("cave_ceiling");
     private static final KMap<String, MatterMarker> markers = new KMap<>();
 
     public MarkerMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<MatterMarker> getGlobalPalette() {
+        return null;
     }
 
     public MarkerMatter(int width, int height, int depth) {

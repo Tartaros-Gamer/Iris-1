@@ -20,18 +20,24 @@ package com.volmit.iris.core.service;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.engine.framework.MeteredCache;
 import com.volmit.iris.util.context.IrisContext;
+import com.volmit.iris.util.data.KCache;
+import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.IrisService;
 import com.volmit.iris.util.scheduling.Looper;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public class PreservationSVC implements IrisService {
-    private final KList<Thread> threads = new KList<>();
-    private final KList<ExecutorService> services = new KList<>();
+    private final List<Thread> threads = new CopyOnWriteArrayList<>();
+    private final List<ExecutorService> services = new CopyOnWriteArrayList<>();
     private Looper dereferencer;
+    private final List<MeteredCache> caches = new CopyOnWriteArrayList<>();
 
     public void register(Thread t) {
         threads.add(t);
@@ -45,9 +51,32 @@ public class PreservationSVC implements IrisService {
         services.add(service);
     }
 
+    public void printCaches() {
+        long s = caches.stream().filter(i -> !i.isClosed()).mapToLong(MeteredCache::getSize).sum();
+        long m = caches.stream().filter(i -> !i.isClosed()).mapToLong(MeteredCache::getMaxSize).sum();
+        double p = 0;
+        double mf = 0;
+
+        for (MeteredCache i : caches) {
+            if (i.isClosed()) {
+                continue;
+            }
+
+            mf++;
+            p += i.getUsage();
+        }
+
+        mf = mf == 0 ? 1 : mf;
+
+        Iris.info("Cached " + Form.f(s) + " / " + Form.f(m) + " (" + Form.pc(p / mf) + ") from " + caches.size() + " Caches");
+    }
+
     public void dereference() {
         IrisContext.dereference();
         IrisData.dereference();
+        threads.removeIf((i) -> !i.isAlive());
+        services.removeIf(ExecutorService::isShutdown);
+        updateCaches();
     }
 
     @Override
@@ -91,5 +120,17 @@ public class PreservationSVC implements IrisService {
                 }
             }
         });
+    }
+
+    public void updateCaches() {
+        caches.removeIf(MeteredCache::isClosed);
+    }
+
+    public void registerCache(MeteredCache cache) {
+        caches.add(cache);
+    }
+
+    public List<KCache<?, ?>> caches() {
+        return caches.stream().map(MeteredCache::getRawCache).collect(Collectors.toList());
     }
 }

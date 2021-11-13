@@ -19,10 +19,13 @@
 package com.volmit.iris.util.matter;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.json.JSONObject;
+import com.volmit.iris.util.plugin.VolmitSender;
 import lombok.Getter;
 
-public class IrisMatter implements Matter {
+public class IrisMatter extends IrisRegistrant implements Matter {
     protected static final KMap<Class<?>, MatterSlice<?>> slicers = buildSlicers();
 
     @Getter
@@ -41,6 +44,11 @@ public class IrisMatter implements Matter {
     private final KMap<Class<?>, MatterSlice<?>> sliceMap;
 
     public IrisMatter(int width, int height, int depth) {
+        if(width < 1 || height < 1 || depth < 1)
+        {
+            throw new RuntimeException("Invalid Matter Size " + width + "x" + height + "x" + depth);
+        }
+
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -73,5 +81,20 @@ public class IrisMatter implements Matter {
         }
 
         return null;
+    }
+
+    @Override
+    public String getFolderName() {
+        return "matter";
+    }
+
+    @Override
+    public String getTypeName() {
+        return "matter";
+    }
+
+    @Override
+    public void scanForErrors(JSONObject p, VolmitSender sender) {
+
     }
 }

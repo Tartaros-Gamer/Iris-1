@@ -43,9 +43,6 @@ import lombok.Data;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-import java.util.Objects;
-import java.util.function.Supplier;
-
 public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     private final RNG rng;
     private final BlockData AIR = Material.CAVE_AIR.createBlockData();
@@ -84,7 +81,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            positions.compute(Cache.key(rx, rz), (k, v) -> Objects.requireNonNullElseGet(v, (Supplier<KList<Integer>>) KList::new).qadd(yy));
+            positions.computeIfAbsent(Cache.key(rx, rz), (k) -> new KList<>()).qadd(yy);
 
             if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx, yy, rz + 1), c);
@@ -169,13 +166,13 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     private void processZone(Hunk<BlockData> output, MantleChunk mc, Mantle mantle, CaveZone zone, int rx, int rz, int xx, int zz) {
-        boolean decFloor = B.isSolid(output.get(rx, zone.floor - 1, rz));
-        boolean decCeiling = B.isSolid(output.get(rx, zone.ceiling + 1, rz));
+        boolean decFloor = B.isSolid(output.getClosest(rx, zone.floor - 1, rz));
+        boolean decCeiling = B.isSolid(output.getClosest(rx, zone.ceiling + 1, rz));
         int center = (zone.floor + zone.ceiling) / 2;
         int thickness = zone.airThickness();
         String customBiome = "";
 
-        if (B.isDecorant(output.get(rx, zone.ceiling + 1, rz))) {
+        if (B.isDecorant(output.getClosest(rx, zone.ceiling + 1, rz))) {
             output.set(rx, zone.ceiling + 1, rz, AIR);
         }
 
@@ -239,24 +236,26 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
 
         blocks = biome.generateCeilingLayers(getDimension(), xx, zz, rng, 3, zone.ceiling, getData(), getComplex());
 
-        for (int i = 0; i < zone.ceiling + 1; i++) {
-            if (!blocks.hasIndex(i)) {
-                break;
+        if (zone.ceiling + 1 < mantle.getWorldHeight()) {
+            for (int i = 0; i < zone.ceiling + 1; i++) {
+                if (!blocks.hasIndex(i)) {
+                    break;
+                }
+
+                BlockData b = blocks.get(i);
+                BlockData up = output.get(rx, zone.ceiling + i + 1, rz);
+
+                if (!B.isSolid(up)) {
+                    continue;
+                }
+
+                if (B.isOre(up)) {
+                    output.set(rx, zone.ceiling + i + 1, rz, B.toDeepSlateOre(up, b));
+                    continue;
+                }
+
+                output.set(rx, zone.ceiling + i + 1, rz, b);
             }
-
-            BlockData b = blocks.get(i);
-            BlockData up = output.get(rx, zone.ceiling + i + 1, rz);
-
-            if (!B.isSolid(up)) {
-                continue;
-            }
-
-            if (B.isOre(up)) {
-                output.set(rx, zone.ceiling + i + 1, rz, B.toDeepSlateOre(up, b));
-                continue;
-            }
-
-            output.set(rx, zone.ceiling + i + 1, rz, b);
         }
     }
 

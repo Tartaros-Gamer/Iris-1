@@ -28,10 +28,14 @@ import com.volmit.iris.engine.object.annotations.Snippet;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.ExpressionNoise;
+import com.volmit.iris.util.noise.ImageNoise;
+import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+
+import java.util.List;
 
 @Snippet("style")
 @Accessors(chain = true)
@@ -43,12 +47,21 @@ public class IrisGeneratorStyle {
     private final transient AtomicCache<CNG> cng = new AtomicCache<>();
     @Desc("The chance is 1 in CHANCE per interval")
     private NoiseStyle style = NoiseStyle.FLAT;
+
+    @Desc("If set above 0, this style will be cellularized")
+    private double cellularFrequency = 0;
+
+    @Desc("Cell zooms")
+    private double cellularZoom = 1;
+
     @MinNumber(0.00001)
     @Desc("The zoom of this style")
     private double zoom = 1;
     @Desc("Instead of using the style property, use a custom expression to represent this style.")
     @RegistryListResource(IrisExpression.class)
     private String expression = null;
+    @Desc("Use an Image map instead of a generated value")
+    private IrisImageMap imageMap = null;
     @MinNumber(0.00001)
     @Desc("The Output multiplier. Only used if parent is fracture.")
     private double multiplier = 1;
@@ -83,8 +96,30 @@ public class IrisGeneratorStyle {
                     cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
                 }
 
+                if(cellularFrequency > 0)
+                {
+                    return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+                }
+
                 return cng;
             }
+        }
+
+        else if(getImageMap() != null)
+        {
+            CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D/zoom).pow(exponent).bake();
+            cng.setTrueFracturing(axialFracturing);
+
+            if (fracture != null) {
+                cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+            }
+
+            if(cellularFrequency > 0)
+            {
+                return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+            }
+
+            return cng;
         }
 
         CNG cng = style.create(rng).bake().scale(1D / zoom).pow(exponent).bake();
@@ -92,6 +127,11 @@ public class IrisGeneratorStyle {
 
         if (fracture != null) {
             cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
+        }
+
+        if(cellularFrequency > 0)
+        {
+            return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
         }
 
         return cng;

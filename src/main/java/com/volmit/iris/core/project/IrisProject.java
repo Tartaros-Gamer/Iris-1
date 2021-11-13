@@ -175,28 +175,8 @@ public class IrisProject {
                     return;
                 }
                 File f = d.getLoader().getDataFolder();
-                boolean foundWork = false;
-                for (File i : Objects.requireNonNull(f.listFiles())) {
-                    if (i.getName().endsWith(".code-workspace")) {
-                        foundWork = true;
-                        J.a(() ->
-                        {
-                            updateWorkspace();
-                        });
 
-                        if (IrisSettings.get().getStudio().isOpenVSCode()) {
-                            if (!GraphicsEnvironment.isHeadless()) {
-                                Iris.msg("Opening VSCode. You may see the output from VSCode.");
-                                Iris.msg("VSCode output always starts with: '(node:#####) electron'");
-                                Desktop.getDesktop().open(i);
-                            }
-                        }
-
-                        break;
-                    }
-                }
-
-                if (!foundWork) {
+                if (!doOpenVSCode(f)) {
                     File ff = new File(d.getLoader().getDataFolder(), d.getLoadKey() + ".code-workspace");
                     Iris.warn("Project missing code-workspace: " + ff.getAbsolutePath() + " Re-creating code workspace.");
 
@@ -207,12 +187,39 @@ public class IrisProject {
                         e1.printStackTrace();
                     }
                     updateWorkspace();
+                    if (!doOpenVSCode(f)) {
+                        Iris.warn("Tried creating code workspace but failed a second time. Your project is likely corrupt.");
+                    }
                 }
             } catch (Throwable e) {
                 Iris.reportError(e);
                 e.printStackTrace();
             }
         });
+    }
+
+    private boolean doOpenVSCode(File f) throws IOException {
+        boolean foundWork = false;
+        for (File i : Objects.requireNonNull(f.listFiles())) {
+            if (i.getName().endsWith(".code-workspace")) {
+                foundWork = true;
+                J.a(() ->
+                {
+                    updateWorkspace();
+                });
+
+                if (IrisSettings.get().getStudio().isOpenVSCode()) {
+                    if (!GraphicsEnvironment.isHeadless()) {
+                        Iris.msg("Opening VSCode. You may see the output from VSCode.");
+                        Iris.msg("VSCode output always starts with: '(node:#####) electron'");
+                        Desktop.getDesktop().open(i);
+                    }
+                }
+
+                break;
+            }
+        }
+        return foundWork;
     }
 
     public void open(VolmitSender sender, long seed, Consumer<World> onDone) throws IrisException {
@@ -349,7 +356,7 @@ public class IrisProject {
                 File a = new File(dm.getDataFolder(), ".iris/schema/snippet/" + snipType + "-schema.json");
                 J.attemptAsync(() -> {
                     try {
-                        IO.writeAll(a, new SchemaBuilder(i, dm).compute().toString(4));
+                        IO.writeAll(a, new SchemaBuilder(i, dm).construct().toString(4));
                     } catch (Throwable e) {
                         e.printStackTrace();
                     }
@@ -384,41 +391,12 @@ public class IrisProject {
             blocks.add(dm.getBlockLoader().load(i));
         }
 
-        //TODO: EXPORT JIGSAW PIECES FROM STRUCTURES
-        dimension.getFeatures().forEach((i) -> {
-            if (i.getZone().getCustomBiome() != null) {
-                biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
-            }
-        });
-        dimension.getSpecificFeatures().forEach((i) -> {
-            if (i.getFeature().getCustomBiome() != null) {
-                biomes.add(dm.getBiomeLoader().load(i.getFeature().getCustomBiome()));
-            }
-        });
         dimension.getRegions().forEach((i) -> regions.add(dm.getRegionLoader().load(i)));
-        regions.forEach((r) -> {
-            r.getFeatures().forEach((i) -> {
-                if (i.getZone().getCustomBiome() != null) {
-                    biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
-                }
-            });
-        });
         dimension.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i)));
         regions.forEach((i) -> biomes.addAll(i.getAllBiomes(null)));
         regions.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         regions.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
         dimension.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp)));
-
-        for (int f = 0; f < IrisSettings.get().getGenerator().getMaxBiomeChildDepth(); f++) {
-            biomes.copy().forEach((r) -> {
-                r.getFeatures().forEach((i) -> {
-                    if (i.getZone().getCustomBiome() != null) {
-                        biomes.add(dm.getBiomeLoader().load(i.getZone().getCustomBiome()));
-                    }
-                });
-            });
-        }
-
         biomes.forEach((i) -> i.getGenerators().forEach((j) -> generators.add(j.getCachedGenerator(null))));
         biomes.forEach((r) -> r.getLoot().getTables().forEach((i) -> loot.add(dm.getLootLoader().load(i))));
         biomes.forEach((r) -> r.getEntitySpawners().forEach((sp) -> spawners.add(dm.getSpawnerLoader().load(sp))));
@@ -547,9 +525,9 @@ public class IrisProject {
 
     public void compile(VolmitSender sender) {
         IrisData data = IrisData.get(getPath());
-        KList<Job> jobs = new KList<Job>();
-        KList<File> files = new KList<File>();
-        KList<File> objects = new KList<File>();
+        KList<Job> jobs = new KList<>();
+        KList<File> files = new KList<>();
+        KList<File> objects = new KList<>();
         files(getPath(), files);
         filesObjects(getPath(), objects);
 

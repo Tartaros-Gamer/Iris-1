@@ -19,6 +19,7 @@
 package com.volmit.iris.util.matter.slices;
 
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterTile;
 import com.volmit.iris.util.matter.Sliced;
 import com.volmit.iris.util.nbt.io.NBTUtil;
@@ -32,8 +33,15 @@ import java.io.IOException;
 
 @Sliced
 public class TileMatter extends RawMatter<MatterTile> {
+    public static final MatterTile EMPTY = new MatterTile(new CompoundTag());
+
     public TileMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<MatterTile> getGlobalPalette() {
+        return null;
     }
 
     public TileMatter(int width, int height, int depth) {

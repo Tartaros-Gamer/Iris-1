@@ -33,11 +33,14 @@ import java.io.IOException;
 @Data
 public class IrisSettings {
     public static transient IrisSettings settings;
-    private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
+    private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
+    private IrisSettingsAutoconfiguration autoConfiguration = new IrisSettingsAutoconfiguration();
     private IrisSettingsGenerator generator = new IrisSettingsGenerator();
+    private IrisSettingsConcurrency concurrency = new IrisSettingsConcurrency();
     private IrisSettingsStudio studio = new IrisSettingsStudio();
+    private IrisSettingsPerformance performance = new IrisSettingsPerformance();
 
     public static int getThreadCount(int c) {
         return switch (c) {
@@ -48,9 +51,43 @@ public class IrisSettings {
     }
 
     @Data
+    public static class IrisSettingsAutoconfiguration {
+        public boolean configureSpigotTimeoutTime = true;
+        public boolean configurePaperWatchdogDelay = true;
+        public boolean autoRestartOnCustomBiomeInstall = true;
+    }
+
+    @Data
+    public static class IrisAsyncTeleport {
+        public boolean enabled = false;
+        public int loadViewDistance = 2;
+        public boolean urgent = false;
+    }
+
+    @Data
+    public static class IrisSettingsWorld {
+        public IrisAsyncTeleport asyncTeleport = new IrisAsyncTeleport();
+        public boolean postLoadBlockUpdates = true;
+        public boolean anbientEntitySpawningSystem = true;
+        public long asyncTickIntervalMS = 700;
+        public double targetSpawnEntitiesPerChunk = 0.95;
+        public boolean markerEntitySpawningSystem = true;
+        public boolean effectSystem = true;
+    }
+
+    @Data
     public static class IrisSettingsConcurrency {
         public int parallelism = -1;
-        public int parallaxEvictionMS = 10000;
+    }
+
+    @Data
+    public static class IrisSettingsPerformance {
+        public boolean trimMantleInStudio = false;
+        public int mantleKeepAlive = 30;
+        public int cacheSize = 4_096;
+        public int resourceLoaderCacheSize = 1_024;
+        public int objectLoaderCacheSize = 4_096;
+        public int scriptLoaderCacheSize = 512;
     }
 
     @Data
@@ -82,7 +119,7 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsGenerator {
         public String defaultWorldType = "overworld";
-        public boolean headlessPregeneration = false;
+        public boolean headlessPregeneration = true;
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
     }

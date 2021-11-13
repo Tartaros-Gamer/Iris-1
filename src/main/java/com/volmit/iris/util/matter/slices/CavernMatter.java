@@ -18,6 +18,7 @@
 
 package com.volmit.iris.util.matter.slices;
 
+import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.Sliced;
 
@@ -27,8 +28,15 @@ import java.io.IOException;
 
 @Sliced
 public class CavernMatter extends RawMatter<MatterCavern> {
+    public static final MatterCavern EMPTY = new MatterCavern(false, "", (byte) 0);
+
     public CavernMatter() {
         this(1, 1, 1);
+    }
+
+    @Override
+    public Palette<MatterCavern> getGlobalPalette() {
+        return null;
     }
 
     public CavernMatter(int width, int height, int depth) {

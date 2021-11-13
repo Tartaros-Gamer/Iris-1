@@ -22,7 +22,15 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.*;
+import com.volmit.iris.engine.object.IObjectPlacer;
+import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.engine.object.IrisDimension;
+import com.volmit.iris.engine.object.IrisObject;
+import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.engine.object.IrisTreeModes;
+import com.volmit.iris.engine.object.IrisTreeSize;
+import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
@@ -130,6 +138,7 @@ public class TreeSVC implements IrisService {
         List<BlockState> blockStateList = new KList<>();
         KMap<Location, BlockData> dataCache = new KMap<>();
         // TODO: REAL CLASSES!!!!
+
         IObjectPlacer placer = new IObjectPlacer() {
 
             @Override
@@ -189,6 +198,11 @@ public class TreeSVC implements IrisService {
             @Override
             public void setTile(int xx, int yy, int zz, TileData<? extends TileState> tile) {
 
+            }
+
+            @Override
+            public Engine getEngine() {
+                return engine;
             }
         };
 

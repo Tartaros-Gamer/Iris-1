@@ -23,7 +23,7 @@ import com.volmit.iris.core.nms.INMS;
 import com.volmit.iris.util.nbt.io.NBTDeserializer;
 import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
-import com.volmit.iris.util.nbt.mca.palette.BiomeContainer;
+import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 
@@ -46,7 +46,7 @@ public class Chunk {
     private int dataVersion;
     private long lastUpdate;
     private long inhabitedTime;
-    private BiomeContainer biomes;
+    private MCABiomeContainer biomes;
     private CompoundTag heightMaps;
     private CompoundTag carvingMasks;
     private ListTag<CompoundTag> entities;
@@ -253,7 +253,13 @@ public class Chunk {
     }
 
     public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
-        Section section = sections.get(MCAUtil.blockToChunk(blockY));
+        int s = MCAUtil.blockToChunk(blockY);
+
+        if (sections.length() <= s) {
+            return null;
+        }
+
+        Section section = sections.get(s);
         if (section == null) {
             return null;
         }
@@ -274,6 +280,11 @@ public class Chunk {
      */
     public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int sectionIndex = MCAUtil.blockToChunk(blockY);
+
+        if (sections.length() <= sectionIndex) {
+            return;
+        }
+
         Section section = sections.get(sectionIndex);
         if (section == null) {
             section = Section.newSection();

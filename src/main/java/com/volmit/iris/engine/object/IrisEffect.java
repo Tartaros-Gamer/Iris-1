@@ -21,6 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
+import com.volmit.iris.engine.object.annotations.ArrayType;
 import com.volmit.iris.engine.object.annotations.DependsOn;
 import com.volmit.iris.engine.object.annotations.Desc;
 import com.volmit.iris.engine.object.annotations.MaxNumber;
@@ -151,6 +152,10 @@ public class IrisEffect {
     @MinNumber(1)
     @Desc("The chance is 1 in CHANCE per interval")
     private int chance = 50;
+    @ArrayType(min = 1, type = IrisCommandRegistry.class)
+    @Desc("Run commands, with configurable location parameters")
+    private IrisCommandRegistry commandRegistry = null;
+
 
     public boolean canTick() {
         return latch.aquire(() -> new ChronoLatch(interval)).flip();
@@ -219,6 +224,10 @@ public class IrisEffect {
                         randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
                         randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ));
             }
+        }
+
+        if (commandRegistry != null) {
+            commandRegistry.run(p);
         }
 
         if (potionStrength > -1) {

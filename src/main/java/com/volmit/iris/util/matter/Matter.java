@@ -18,6 +18,8 @@
 
 package com.volmit.iris.util.matter;
 
+import com.volmit.iris.Iris;
+import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.Varint;
@@ -26,6 +28,7 @@ import com.volmit.iris.util.math.BlockPosition;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
+import org.bukkit.util.BlockVector;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -57,6 +60,25 @@ import java.util.function.Function;
 public interface Matter {
     int VERSION = 1;
 
+    static Matter from(IrisObject object) {
+        object.clean();
+        object.shrinkwrap();
+        BlockVector min = new BlockVector();
+        Matter m = new IrisMatter(object.getW(), object.getH(), object.getD());
+
+        for (BlockVector i : object.getBlocks().keySet()) {
+            min.setX(Math.min(min.getX(), i.getX()));
+            min.setY(Math.min(min.getY(), i.getY()));
+            min.setZ(Math.min(min.getZ(), i.getZ()));
+        }
+
+        for (BlockVector i : object.getBlocks().keySet()) {
+            m.slice(BlockData.class).set(i.getBlockX() - min.getBlockX(), i.getBlockY() - min.getBlockY(), i.getBlockZ() - min.getBlockZ(), object.getBlocks().get(i));
+        }
+
+        return m;
+    }
+
     static Matter read(File f) throws IOException, ClassNotFoundException {
         FileInputStream in = new FileInputStream(f);
         Matter m = read(in);
@@ -64,8 +86,18 @@ public interface Matter {
         return m;
     }
 
+    default Matter copy() {
+        Matter m = new IrisMatter(getWidth(), getHeight(), getDepth());
+        getSliceMap().forEach((k, v) -> m.slice(k).forceInject(v));
+        return m;
+    }
+
     static Matter read(InputStream in) throws IOException, ClassNotFoundException {
         return read(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
+    }
+
+    static Matter readDin(DataInputStream in) throws IOException, ClassNotFoundException {
+        return readDin(in, (b) -> new IrisMatter(b.getX(), b.getY(), b.getZ()));
     }
 
     /**
@@ -78,16 +110,26 @@ public interface Matter {
      * @throws IOException shit happens yo
      */
     static Matter read(InputStream in, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
-        DataInputStream din = new DataInputStream(in);
-        Matter matter = matterFactory.apply(new BlockPosition(
-                Varint.readUnsignedVarInt(din),
-                Varint.readUnsignedVarInt(din),
-                Varint.readUnsignedVarInt(din)));
-        int sliceCount = din.readByte();
-        matter.getHeader().read(din);
+        return readDin(new DataInputStream(in), matterFactory);
+    }
 
-        while (sliceCount-- > 0) {
+    static Matter readDin(DataInputStream din, Function<BlockPosition, Matter> matterFactory) throws IOException, ClassNotFoundException {
+        Matter matter = matterFactory.apply(new BlockPosition(
+                din.readInt(),
+                din.readInt(),
+                din.readInt()));
+        Iris.addPanic("read.matter.size", matter.getWidth() + "x" + matter.getHeight() + "x" + matter.getDepth());
+        int sliceCount = din.readByte();
+        Iris.addPanic("read.matter.slicecount", sliceCount + "");
+
+        matter.getHeader().read(din);
+        Iris.addPanic("read.matter.header", matter.getHeader().toString());
+
+        for(int i = 0; i < sliceCount; i++)
+        {
+            Iris.addPanic("read.matter.slice", i + "");
             String cn = din.readUTF();
+            Iris.addPanic("read.matter.slice.class", cn);
             try {
                 Class<?> type = Class.forName(cn);
                 MatterSlice<?> slice = matter.createSlice(type, matter);
@@ -164,7 +206,7 @@ public interface Matter {
      * @return the center X
      */
     default int getCenterX() {
-        return Math.round(getWidth() / 2);
+        return (int) Math.round(getWidth() / 2D);
     }
 
     /**
@@ -173,7 +215,7 @@ public interface Matter {
      * @return the center Y
      */
     default int getCenterY() {
-        return Math.round(getHeight() / 2);
+        return (int) Math.round(getHeight() / 2D);
     }
 
     /**
@@ -182,7 +224,7 @@ public interface Matter {
      * @return the center Z
      */
     default int getCenterZ() {
-        return Math.round(getDepth() / 2);
+        return (int) Math.round(getDepth() / 2D);
     }
 
     /**
@@ -309,10 +351,6 @@ public interface Matter {
     Map<Class<?>, MatterSlice<?>> getSliceMap();
 
     default void write(File f) throws IOException {
-        write(f, true);
-    }
-
-    default void write(File f, boolean compression) throws IOException {
         OutputStream out = new FileOutputStream(f);
         write(out);
         out.close();
@@ -354,9 +392,9 @@ public interface Matter {
 
     default void writeDos(DataOutputStream dos) throws IOException {
         trimSlices();
-        Varint.writeUnsignedVarInt(getWidth(), dos);
-        Varint.writeUnsignedVarInt(getHeight(), dos);
-        Varint.writeUnsignedVarInt(getDepth(), dos);
+        dos.writeInt(getWidth());
+        dos.writeInt(getHeight());
+        dos.writeInt(getDepth());
         dos.writeByte(getSliceTypes().size());
         getHeader().write(dos);
 
