@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package com.volmit.iris.util.nbt.mca;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.nbt.io.NBTDeserializer;
 import com.volmit.iris.util.nbt.io.NBTSerializer;
 import com.volmit.iris.util.nbt.io.NamedTag;
@@ -27,19 +28,13 @@ import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
 import com.volmit.iris.util.nbt.tag.ListTag;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.io.*;
 
 import static com.volmit.iris.util.nbt.mca.LoadFlags.*;
 
 public class Chunk {
     public static final int DEFAULT_DATA_VERSION = 2730;
-    private final AtomicReferenceArray<Section> sections = new AtomicReferenceArray<>(16);
+    private final KMap<Integer, Section> sections = new KMap<>();
     private boolean partial;
     private int lastMCAUpdate;
     private CompoundTag data;
@@ -150,7 +145,7 @@ public class Chunk {
                 if (newSection.isEmpty()) {
                     continue;
                 }
-                sections.set(sectionIndex, newSection);
+                sections.put(sectionIndex, newSection);
             }
         }
 
@@ -255,10 +250,6 @@ public class Chunk {
     public CompoundTag getBlockStateAt(int blockX, int blockY, int blockZ) {
         int s = MCAUtil.blockToChunk(blockY);
 
-        if (sections.length() <= s) {
-            return null;
-        }
-
         Section section = sections.get(s);
         if (section == null) {
             return null;
@@ -281,14 +272,10 @@ public class Chunk {
     public void setBlockStateAt(int blockX, int blockY, int blockZ, CompoundTag state, boolean cleanup) {
         int sectionIndex = MCAUtil.blockToChunk(blockY);
 
-        if (sections.length() <= sectionIndex) {
-            return;
-        }
-
         Section section = sections.get(sectionIndex);
         if (section == null) {
             section = Section.newSection();
-            sections.set(sectionIndex, section);
+            sections.put(sectionIndex, section);
         }
         section.setBlockStateAt(blockX, blockY, blockZ, state, cleanup);
     }
@@ -359,7 +346,7 @@ public class Chunk {
      * @param section  The section to be set.
      */
     public void setSection(int sectionY, Section section) {
-        sections.set(sectionY, section);
+        sections.put(sectionY, section);
     }
 
     /**
@@ -575,8 +562,7 @@ public class Chunk {
     }
 
     public void cleanupPalettesAndBlockStates() {
-        for (int i = 0; i < sections.length(); i++) {
-            Section section = sections.get(i);
+        for (Section section : sections.values()) {
             if (section != null) {
                 section.cleanupPaletteAndBlockStates();
             }
@@ -604,16 +590,18 @@ public class Chunk {
         level.putString("Status", status);
         if (structures != null) level.put("Structures", structures);
         ListTag<CompoundTag> sections = new ListTag<>(CompoundTag.class);
-        for (int i = 0; i < this.sections.length(); i++) {
+
+        for (int i : this.sections.keySet()) {
             if (this.sections.get(i) != null) {
                 sections.add(this.sections.get(i).updateHandle(i));
             }
         }
+
         level.put("Sections", sections);
         return data;
     }
 
     public int sectionCount() {
-        return sections.length();
+        return sections.size();
     }
 }

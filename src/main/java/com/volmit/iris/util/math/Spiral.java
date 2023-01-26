@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,13 +83,13 @@ public class Spiral implements Iterable<Position2> {
     @NotNull
     @Override
     public Iterator<Position2> iterator() {
-        return new SpiralIterator(0, this, start);
+        return new SpiralIterator(this, 0, start);
     }
 
     @AllArgsConstructor
     static class SpiralIterator implements Iterator<Position2> {
-        private long itr = 0;
         private final Spiral s;
+        private long itr = 0;
         private Position2 cursor;
 
         @Override

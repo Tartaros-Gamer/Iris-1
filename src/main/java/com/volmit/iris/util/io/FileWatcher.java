@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ import java.io.File;
 
 public class FileWatcher {
     protected final File file;
-    private boolean exists;
     private long lastModified;
     private long size;
 
@@ -32,7 +31,7 @@ public class FileWatcher {
     }
 
     protected void readProperties() {
-        exists = file.exists();
+        boolean exists = file.exists();
         lastModified = exists ? file.lastModified() : -1;
         size = exists ? file.isDirectory() ? -2 : file.length() : -1;
     }

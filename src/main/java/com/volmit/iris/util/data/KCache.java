@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,10 +26,10 @@ import com.volmit.iris.util.math.RollingSequence;
 
 public class KCache<K, V> implements MeteredCache {
     private final long max;
-    private CacheLoader<K, V> loader;
     private final LoadingCache<K, V> cache;
     private final boolean fastDump;
     private final RollingSequence msu = new RollingSequence(100);
+    private CacheLoader<K, V> loader;
 
     public KCache(CacheLoader<K, V> loader, long max) {
         this(loader, max, false);
@@ -46,7 +46,6 @@ public class KCache<K, V> implements MeteredCache {
         return Caffeine
                 .newBuilder()
                 .maximumSize(max)
-                .softValues()
                 .initialCapacity((int) (max))
                 .build((k) -> loader == null ? null : loader.load(k));
     }

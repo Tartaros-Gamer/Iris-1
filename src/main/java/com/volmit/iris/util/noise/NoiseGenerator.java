@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,8 +36,7 @@ public interface NoiseGenerator {
         return false;
     }
 
-    default ProceduralStream<Double> stream()
-    {
+    default ProceduralStream<Double> stream() {
         return ProceduralStream.of(this::noise, this::noise, Interpolated.DOUBLE);
     }
 }

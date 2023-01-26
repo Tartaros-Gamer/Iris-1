@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,11 +48,6 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
         this(1, 1, 1);
     }
 
-    @Override
-    public Palette<MatterEntityGroup> getGlobalPalette() {
-        return null;
-    }
-
     public EntityMatter(int width, int height, int depth) {
         super(width, height, depth, MatterEntityGroup.class);
         registerWriter(World.class, ((w, d, x, y, z) -> {
@@ -80,6 +75,11 @@ public class EntityMatter extends RawMatter<MatterEntityGroup> {
 
             return null;
         });
+    }
+
+    @Override
+    public Palette<MatterEntityGroup> getGlobalPalette() {
+        return null;
     }
 
     /**

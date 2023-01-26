@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.matter.slices;
 
-import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.palette.Palette;
 import com.volmit.iris.util.matter.Sliced;
 import org.bukkit.Bukkit;
@@ -38,11 +37,6 @@ public class BlockMatter extends RawMatter<BlockData> {
         this(1, 1, 1);
     }
 
-    @Override
-    public Palette<BlockData> getGlobalPalette() {
-        return null;
-    }
-
     public BlockMatter(int width, int height, int depth) {
         super(width, height, depth, BlockData.class);
         registerWriter(World.class, ((w, d, x, y, z) -> w.getBlockAt(x, y, z).setBlockData(d)));
@@ -50,6 +44,11 @@ public class BlockMatter extends RawMatter<BlockData> {
             BlockData d = w.getBlockAt(x, y, z).getBlockData();
             return d.getMaterial().isAir() ? null : d;
         });
+    }
+
+    @Override
+    public Palette<BlockData> getGlobalPalette() {
+        return null;
     }
 
     @Override

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,15 +43,29 @@ public class SemaphoreStream<T> extends BasicStream<T> {
 
     @Override
     public T get(double x, double z) {
-        synchronized (getTypedSource()) {
-            return getTypedSource().get(x, z);
+        try {
+            semaphore.acquire();
+            T t = getTypedSource().get(x, z);
+            semaphore.release();
+            return t;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
+        return null;
     }
 
     @Override
     public T get(double x, double y, double z) {
-        synchronized (getTypedSource()) {
-            return getTypedSource().get(x, y, z);
+        try {
+            semaphore.acquire();
+            T t = getTypedSource().get(x, y, z);
+            semaphore.release();
+            return t;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
+        return null;
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,22 +20,17 @@ package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
 import com.volmit.iris.util.noise.ExpressionNoise;
 import com.volmit.iris.util.noise.ImageNoise;
-import com.volmit.iris.util.stream.ProceduralStream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.util.List;
+import java.util.Objects;
 
 @Snippet("style")
 @Accessors(chain = true)
@@ -53,7 +48,6 @@ public class IrisGeneratorStyle {
 
     @Desc("Cell zooms")
     private double cellularZoom = 1;
-
     @MinNumber(0.00001)
     @Desc("The zoom of this style")
     private double zoom = 1;
@@ -73,6 +67,10 @@ public class IrisGeneratorStyle {
     @MaxNumber(64)
     @Desc("The exponent")
     private double exponent = 1;
+    @MinNumber(0)
+    @MaxNumber(8192)
+    @Desc("If the cache size is set above 0, this generator will be cached")
+    private int cacheSize = 0;
 
     public IrisGeneratorStyle(NoiseStyle s) {
         this.style = s;
@@ -84,6 +82,17 @@ public class IrisGeneratorStyle {
     }
 
     public CNG createNoCache(RNG rng, IrisData data) {
+        return createNoCache(rng, data, false);
+    }
+
+
+    private int hash() {
+        return Objects.hash(expression, imageMap, multiplier, axialFracturing, fracture != null ? fracture.hash() : 0, exponent, cacheSize, zoom, cellularZoom, cellularFrequency, style);
+    }
+
+    public CNG createNoCache(RNG rng, IrisData data, boolean actuallyCached) {
+        String cacheKey = hash() + "";
+
         if (getExpression() != null) {
             IrisExpression e = data.getExpressionLoader().load(getExpression());
 
@@ -96,27 +105,22 @@ public class IrisGeneratorStyle {
                     cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
                 }
 
-                if(cellularFrequency > 0)
-                {
-                    return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+                if (cellularFrequency > 0) {
+                    return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
                 }
 
                 return cng;
             }
-        }
-
-        else if(getImageMap() != null)
-        {
-            CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D/zoom).pow(exponent).bake();
+        } else if (getImageMap() != null) {
+            CNG cng = new CNG(rng, new ImageNoise(data, getImageMap()), 1D, 1).bake().scale(1D / zoom).pow(exponent).bake();
             cng.setTrueFracturing(axialFracturing);
 
             if (fracture != null) {
                 cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
             }
 
-            if(cellularFrequency > 0)
-            {
-                return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+            if (cellularFrequency > 0) {
+                return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
             }
 
             return cng;
@@ -129,16 +133,19 @@ public class IrisGeneratorStyle {
             cng.fractureWith(fracture.create(rng.nextParallelRNG(2934), data), fracture.getMultiplier());
         }
 
-        if(cellularFrequency > 0)
-        {
-            return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D/cellularZoom).bake();
+        if (cellularFrequency > 0) {
+            return cng.cellularize(rng.nextParallelRNG(884466), cellularFrequency).scale(1D / cellularZoom).bake();
         }
 
         return cng;
     }
 
+    public double warp(RNG rng, IrisData data, double value, double... coords) {
+        return create(rng, data).noise(coords) + value;
+    }
+
     public CNG create(RNG rng, IrisData data) {
-        return cng.aquire(() -> createNoCache(rng, data));
+        return cng.aquire(() -> createNoCache(rng, data, true));
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

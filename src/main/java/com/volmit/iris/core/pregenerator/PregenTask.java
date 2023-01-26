@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ public class PregenTask {
     }
 
     public static void iterateRegion(int xr, int zr, Spiraled s) {
-        iterateRegion(xr, zr, s, new Position2(0, 0));
+        iterateRegion(xr, zr, s, new Position2(-(xr << 5), -(zr << 5)));
     }
 
     private static KList<Position2> computeOrder(Position2 pull) {

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,20 +44,10 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import javax.imageio.ImageIO;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
+import javax.swing.*;
 import javax.swing.event.MouseInputListener;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -90,12 +80,10 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
     private boolean lowtile = false;
     private boolean follow = false;
     private boolean alt = false;
-    private int posX = 0;
     private IrisRenderer renderer;
     private IrisWorld world;
     private double velocity = 0;
     private int lowq = 12;
-    private int posZ = 0;
     private double scale = 128;
     private double mscale = 4D;
     private int w = 0;
@@ -194,7 +182,6 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
             if (world.hasRealWorld()) {
                 try {
                     engine = IrisToolbelt.access(world.realWorld()).getEngine();
-                    Iris.info("Updated Renderer");
                     return !engine.isClosed();
                 } catch (Throwable e) {
 
@@ -225,12 +212,18 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         BiFunction<Double, Double, Integer> colorFunction = (d, dx) -> Color.black.getRGB();
 
         switch (currentType) {
-            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD -> colorFunction = (x, z) -> engine.getComplex().getTrueBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case BIOME_LAND -> colorFunction = (x, z) -> engine.getComplex().getLandBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case BIOME_SEA -> colorFunction = (x, z) -> engine.getComplex().getSeaBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case REGION -> colorFunction = (x, z) -> engine.getComplex().getRegionStream().get(x, z).getColor(engine.getComplex(), currentType).getRGB();
-            case CAVE_LAND -> colorFunction = (x, z) -> engine.getComplex().getCaveBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
-            case HEIGHT -> colorFunction = (x, z) -> Color.getHSBColor(engine.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
+            case BIOME, DECORATOR_LOAD, OBJECT_LOAD, LAYER_LOAD ->
+                    colorFunction = (x, z) -> engine.getComplex().getTrueBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case BIOME_LAND ->
+                    colorFunction = (x, z) -> engine.getComplex().getLandBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case BIOME_SEA ->
+                    colorFunction = (x, z) -> engine.getComplex().getSeaBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case REGION ->
+                    colorFunction = (x, z) -> engine.getComplex().getRegionStream().get(x, z).getColor(engine.getComplex(), currentType).getRGB();
+            case CAVE_LAND ->
+                    colorFunction = (x, z) -> engine.getComplex().getCaveBiomeStream().get(x, z).getColor(engine, currentType).getRGB();
+            case HEIGHT ->
+                    colorFunction = (x, z) -> Color.getHSBColor(engine.getComplex().getHeightStream().get(x, z).floatValue(), 100, 100).getRGB();
         }
 
         return colorFunction.apply(wx, wz);
@@ -437,6 +430,19 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
 
     @Override
     public void paint(Graphics gx) {
+
+        if (engine.isClosed()) {
+            EventQueue.invokeLater(() -> {
+                try {
+                    setVisible(false);
+                } catch (Throwable e) {
+
+                }
+            });
+
+            return;
+        }
+
         if (updateEngine()) {
             dump();
         }
@@ -501,8 +507,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         int iscale = (int) scale;
         g.setColor(Color.white);
         g.clearRect(0, 0, w, h);
-        posX = (int) oxp;
-        posZ = (int) ozp;
+        int posX = (int) oxp;
+        int posZ = (int) ozp;
         m.set(3);
 
         for (int r = 0; r < Math.max(w, h); r += iscale) {
@@ -729,7 +735,8 @@ public class VisionGUI extends JPanel implements MouseWheelListener, KeyListener
         IrisComplex complex = engine.getComplex();
         File r = null;
         switch (currentType) {
-            case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT -> r = complex.getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
+            case BIOME, LAYER_LOAD, DECORATOR_LOAD, OBJECT_LOAD, HEIGHT ->
+                    r = complex.getTrueBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_LAND -> r = complex.getLandBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case BIOME_SEA -> r = complex.getSeaBiomeStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();
             case REGION -> r = complex.getRegionStream().get(getWorldX(hx), getWorldZ(hz)).openInVSCode();

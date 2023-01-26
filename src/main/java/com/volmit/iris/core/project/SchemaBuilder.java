@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.core.loader.ResourceLoader;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
-import com.volmit.iris.engine.object.annotations.RegistryListFont;
-import com.volmit.iris.engine.object.annotations.RegistryListItemType;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.RegistryListSpecialEntity;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -41,7 +31,7 @@ import com.volmit.iris.util.json.JSONObject;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.potion.PotionEffectType;
 
-import java.awt.GraphicsEnvironment;
+import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -52,7 +42,7 @@ public class SchemaBuilder {
     private static final String SYMBOL_LIMIT__N = "*";
     private static final String SYMBOL_TYPE__N = "";
     private static final JSONArray POTION_TYPES = getPotionTypes();
-    private static final JSONArray ENCHANT_TYPES = getEnchantmentTypes();
+    private static final JSONArray ENCHANT_TYPES = getEnchantTypes();
     private static final JSONArray ITEM_TYPES = new JSONArray(B.getItemTypes());
     private static final JSONArray FONT_TYPES = new JSONArray(GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames());
     private final KMap<String, JSONObject> definitions;
@@ -67,16 +57,6 @@ public class SchemaBuilder {
         this.root = root;
     }
 
-    private static JSONArray getEnchantmentTypes() {
-        JSONArray a = new JSONArray();
-
-        for (Field gg : Enchantment.class.getDeclaredFields()) {
-            a.put(gg.getName());
-        }
-
-        return a;
-    }
-
     private static JSONArray getPotionTypes() {
         JSONArray a = new JSONArray();
 
@@ -87,10 +67,18 @@ public class SchemaBuilder {
         return a;
     }
 
+    private static JSONArray getEnchantTypes() {
+        JSONArray array = new JSONArray();
+        for (Enchantment e : Enchantment.values()) {
+            array.put(e.getKey().getKey());
+        }
+        return array;
+    }
+
     public JSONObject construct() {
         JSONObject schema = new JSONObject();
         schema.put("$schema", "http://json-schema.org/draft-07/schema#");
-        schema.put("$id", "http://volmit.com/iris-schema/" + root.getSimpleName().toLowerCase() + ".json");
+        schema.put("$id", "https://volmit.com/iris-schema/" + root.getSimpleName().toLowerCase() + ".json");
 
         JSONObject props = buildProperties(root);
 
@@ -309,7 +297,7 @@ public class SchemaBuilder {
                     prop.put("$ref", "#/definitions/" + key);
                     description.add(SYMBOL_TYPE__N + "  Must be a valid Font Family (use ctrl+space for auto complete!)");
 
-                } else if (k.getType().equals(Enchantment.class)) {
+                } else if (k.isAnnotationPresent(RegistryListEnchantment.class)) {
                     String key = "enum-enchantment";
 
                     if (!definitions.containsKey(key)) {
@@ -483,7 +471,7 @@ public class SchemaBuilder {
                                 items.put("$ref", "#/definitions/" + key);
                                 prop.put("items", items);
                                 description.add(SYMBOL_TYPE__N + "  Must be a valid Font Family (use ctrl+space for auto complete!)");
-                            } else if (t.type().equals(Enchantment.class)) {
+                            } else if (k.isAnnotationPresent(RegistryListEnchantment.class)) {
                                 fancyType = "List of Enchantment Types";
                                 String key = "enum-enchantment";
 
@@ -552,7 +540,8 @@ public class SchemaBuilder {
                     warnings.add("Undefined array type for field " + k.getName() + " (" + k.getType().getSimpleName() + ") in class " + cl.getSimpleName());
                 }
             }
-            default -> warnings.add("Unexpected Schema Type: " + type + " for field " + k.getName() + " (" + k.getType().getSimpleName() + ") in class " + cl.getSimpleName());
+            default ->
+                    warnings.add("Unexpected Schema Type: " + type + " for field " + k.getName() + " (" + k.getType().getSimpleName() + ") in class " + cl.getSimpleName());
         }
 
         KList<String> d = new KList<>();

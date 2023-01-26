@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,11 +35,11 @@ public class CommandPregen implements DecreeExecutor {
     @Decree(description = "Pregenerate a world")
     public void start(
             @Param(description = "The radius of the pregen in blocks", aliases = "size")
-                    int radius,
+            int radius,
             @Param(description = "The world to pregen", contextual = true)
-                    World world,
+            World world,
             @Param(aliases = "middle", description = "The center location of the pregen. Use \"me\" for your current location", defaultValue = "0,0")
-                    Vector center
+            Vector center
     ) {
         try {
             if (sender().isPlayer() && access() == null) {
@@ -54,7 +54,7 @@ public class CommandPregen implements DecreeExecutor {
                     .width(w)
                     .height(w)
                     .build(), world);
-            String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + w + C.GREEN + " by " + C.GOLD + w + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
+            String msg = C.GREEN + "Pregen started in " + C.GOLD + world.getName() + C.GREEN + " of " + C.GOLD + (radius * 2) + C.GREEN + " by " + C.GOLD + (radius * 2) + C.GREEN + " blocks from " + C.GOLD + center.getX() + "," + center.getZ();
             sender().sendMessage(msg);
             Iris.info(msg);
         } catch (Throwable e) {

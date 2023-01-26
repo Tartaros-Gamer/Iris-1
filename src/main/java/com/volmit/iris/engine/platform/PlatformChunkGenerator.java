@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,6 @@ import java.util.function.Consumer;
 
 public interface PlatformChunkGenerator extends Hotloadable, DataProvider {
     Engine getEngine();
-
-    boolean isHeadless();
 
     @Override
     default IrisData getData() {

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
 
 package com.volmit.iris.util.hunk.bits;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 import org.apache.commons.lang3.Validate;
 
@@ -91,10 +90,6 @@ public class DataBits {
         }
     }
 
-    public String toString() {
-        return "DBits: " + size + "/" + bits + "[" + data.length() + "]";
-    }
-
     private static int dataLength(int bits, int length) {
         return (length + ((char) (64 / bits)) - 1) / ((char) (64 / bits));
     }
@@ -109,19 +104,8 @@ public class DataBits {
         return a;
     }
 
-    public DataBits setBits(int newBits) {
-        if (bits != newBits) {
-            DataBits newData = new DataBits(newBits, size);
-            AtomicInteger c = new AtomicInteger(0);
-
-            for (int i = 0; i < size; i++) {
-                newData.set(i, get(i));
-            }
-
-            return newData;
-        }
-
-        return this;
+    public String toString() {
+        return "DBits: " + size + "/" + bits + "[" + data.length() + "]";
     }
 
     private int cellIndex(int var0) {
@@ -171,6 +155,21 @@ public class DataBits {
 
     public int getBits() {
         return bits;
+    }
+
+    public DataBits setBits(int newBits) {
+        if (bits != newBits) {
+            DataBits newData = new DataBits(newBits, size);
+            AtomicInteger c = new AtomicInteger(0);
+
+            for (int i = 0; i < size; i++) {
+                newData.set(i, get(i));
+            }
+
+            return newData;
+        }
+
+        return this;
     }
 
     public void getAll(IntConsumer var0) {

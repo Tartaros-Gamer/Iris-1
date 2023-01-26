@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,13 +23,7 @@ import com.volmit.iris.util.json.JSONArray;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -308,10 +302,6 @@ public class KList<T> extends ArrayList<T> implements List<T> {
     /**
      * Convert this list into another list type. Such as GList<Integer> to
      * GList<String>. list.convert((i) -> "" + i);
-     *
-     * @param <V>
-     * @param converter
-     * @return
      */
     public <V> KList<V> convert(Function<T, V> converter) {
         KList<V> v = new KList<V>();

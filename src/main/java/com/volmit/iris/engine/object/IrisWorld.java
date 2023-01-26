@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,17 +21,14 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.util.collection.KList;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.Accessors;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.WorldInfo;
 
 import java.io.File;
 import java.util.Collection;
@@ -107,6 +104,14 @@ public class IrisWorld {
         if (hasRealWorld()) {
             IrisToolbelt.evacuate(realWorld());
         }
+    }
+
+    public void bind(WorldInfo worldInfo) {
+        name(worldInfo.getName())
+                .worldFolder(new File(Bukkit.getWorldContainer(), worldInfo.getName()))
+                .minHeight(worldInfo.getMinHeight())
+                .maxHeight(worldInfo.getMaxHeight())
+                .environment(worldInfo.getEnvironment());
     }
 
     public void bind(World world) {

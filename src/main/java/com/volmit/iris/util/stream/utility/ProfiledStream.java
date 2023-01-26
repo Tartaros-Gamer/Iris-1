@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 
 public class ProfiledStream<T> extends BasicStream<T> {
     public static final AtomicInteger ids = new AtomicInteger();
+    public static final KList<ProfiledStream<?>> profiles = new KList<>();
     private final int id;
     private final RollingSequence metrics;
 
@@ -39,6 +40,7 @@ public class ProfiledStream<T> extends BasicStream<T> {
         super(stream);
         this.metrics = new RollingSequence(memory);
         this.id = ids.getAndAdd(1);
+        profiles.add(this);
     }
 
     public static void print(Consumer<String> printer, ProceduralStream<?> stream) {

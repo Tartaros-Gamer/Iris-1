@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,25 +20,27 @@ package com.volmit.iris.core.link;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.tools.IrisToolbelt;
+import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
+import org.jetbrains.annotations.NotNull;
 
 // See/update https://app.gitbook.com/@volmitsoftware/s/iris/compatability/papi/
 public class IrisPapiExpansion extends PlaceholderExpansion {
     @Override
-    public String getIdentifier() {
+    public @NotNull String getIdentifier() {
         return "iris";
     }
 
     @Override
-    public String getAuthor() {
+    public @NotNull String getAuthor() {
         return "Volmit Software";
     }
 
     @Override
-    public String getVersion() {
+    public @NotNull String getVersion() {
         return Iris.instance.getDescription().getVersion();
     }
 
@@ -52,22 +54,22 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
         Location l = null;
         PlatformChunkGenerator a = null;
 
-        if (player.isOnline()) {
-            l = player.getPlayer().getLocation();
+        if (player.isOnline() && player.getPlayer() != null) {
+            l = player.getPlayer().getLocation().add(0, 2, 0);
             a = IrisToolbelt.access(l.getWorld());
         }
 
         if (p.equalsIgnoreCase("biome_name")) {
             if (a != null) {
-                return a.getEngine().getBiome(l).getName();
+                return getBiome(a, l).getName();
             }
         } else if (p.equalsIgnoreCase("biome_id")) {
             if (a != null) {
-                return a.getEngine().getBiome(l).getLoadKey();
+                return getBiome(a, l).getLoadKey();
             }
         } else if (p.equalsIgnoreCase("biome_file")) {
             if (a != null) {
-                return a.getEngine().getBiome(l).getLoadFile().getPath();
+                return getBiome(a, l).getLoadFile().getPath();
             }
         } else if (p.equalsIgnoreCase("region_name")) {
             if (a != null) {
@@ -106,5 +108,9 @@ public class IrisPapiExpansion extends PlaceholderExpansion {
         }
 
         return null;
+    }
+
+    private IrisBiome getBiome(PlatformChunkGenerator a, Location l) {
+        return a.getEngine().getBiome(l.getBlockX(), l.getBlockY() - l.getWorld().getMinHeight(), l.getBlockZ());
     }
 }

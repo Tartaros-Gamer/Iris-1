@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,7 @@ package com.volmit.iris.util.json;
 
 import com.volmit.iris.Iris;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 
 /**
  * A JSONTokener takes a source string and extracts characters and tokens from
@@ -217,7 +212,6 @@ public class JSONTokener {
      * Get the next char in the string, skipping whitespace.
      *
      * @return A character, or 0 if there are no more characters.
-     * @throws JSONException
      */
     public char nextClean() throws JSONException {
         for (; ; ) {

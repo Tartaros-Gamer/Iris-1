@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,6 +55,7 @@ public class IrisPregenerator {
     private final KSet<Position2> retry;
     private final KSet<Position2> net;
     private final ChronoLatch cl;
+    private final ChronoLatch saveLatch = new ChronoLatch(30000);
 
     public IrisPregenerator(PregenTask task, PregeneratorMethod generator, PregenListener listener) {
         this.listener = listenify(listener);
@@ -140,6 +141,7 @@ public class IrisPregenerator {
         generator.close();
         ticker.interrupt();
         listener.onClose();
+        getMantle().trim(0);
     }
 
     private void visitRegion(int x, int z, boolean regions) {
@@ -167,13 +169,23 @@ public class IrisPregenerator {
         } else if (!regions) {
             hit = true;
             listener.onRegionGenerating(x, z);
-            PregenTask.iterateRegion(x, z, (xx, zz) -> generator.generateChunk(xx, zz, listener));
+            PregenTask.iterateRegion(x, z, (xx, zz) -> {
+                while (paused.get() && !shutdown.get()) {
+                    J.sleep(50);
+                }
+
+                generator.generateChunk(xx, zz, listener);
+            });
         }
 
         if (hit) {
             listener.onRegionGenerated(x, z);
-            listener.onSaving();
-            generator.save();
+
+            if (saveLatch.flip()) {
+                listener.onSaving();
+                generator.save();
+            }
+
             generatedRegions.add(pos);
             checkRegions();
         }

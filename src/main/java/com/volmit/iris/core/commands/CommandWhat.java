@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ public class CommandWhat implements DecreeExecutor {
     @Decree(description = "What biome am i in?", origin = DecreeOrigin.PLAYER)
     public void biome() {
         try {
-            IrisBiome b = engine().getBiome(player().getLocation().getBlockX(), player().getLocation().getBlockY(), player().getLocation().getBlockZ());
+            IrisBiome b = engine().getBiome(player().getLocation().getBlockX(), player().getLocation().getBlockY() - player().getWorld().getMinHeight(), player().getLocation().getBlockZ());
             sender().sendMessage("IBiome: " + b.getLoadKey() + " (" + b.getDerivative().name() + ")");
 
         } catch (Throwable e) {

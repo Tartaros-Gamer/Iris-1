@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ public class CommandJigsaw implements DecreeExecutor {
     @Decree(description = "Edit a jigsaw piece")
     public void edit(
             @Param(description = "The jigsaw piece to edit")
-                    IrisJigsawPiece piece
+            IrisJigsawPiece piece
     ) {
         File dest = piece.getLoadFile();
         new JigsawEditor(player(), piece, IrisData.loadAnyObject(piece.getObject()), dest);
@@ -52,7 +52,7 @@ public class CommandJigsaw implements DecreeExecutor {
     @Decree(description = "Place a jigsaw structure")
     public void place(
             @Param(description = "The jigsaw structure to place")
-                    IrisJigsawStructure structure
+            IrisJigsawStructure structure
     ) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         PlannedStructure ps = new PlannedStructure(structure, new IrisPosition(player().getLocation()), new RNG());
@@ -63,11 +63,11 @@ public class CommandJigsaw implements DecreeExecutor {
     @Decree(description = "Create a jigsaw piece")
     public void create(
             @Param(description = "The name of the jigsaw piece")
-                    String piece,
+            String piece,
             @Param(description = "The project to add the jigsaw piece to")
-                    String project,
+            String project,
             @Param(description = "The object to use for this piece", customHandler = ObjectHandler.class)
-                    String object
+            String object
     ) {
         IrisObject o = IrisData.loadAnyObject(object);
 

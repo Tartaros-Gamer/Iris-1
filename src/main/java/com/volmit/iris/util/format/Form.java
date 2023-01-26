@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,16 +24,8 @@ import com.volmit.iris.util.math.RollingSequence;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -163,10 +155,8 @@ public class Form {
     public static String hardWrap(String s, int len) {
         StringBuilder ss = new StringBuilder();
 
-        for(int i = 0; i < s.length(); i+= len)
-        {
-            if(i + len > s.length())
-            {
+        for (int i = 0; i < s.length(); i += len) {
+            if (i + len > s.length()) {
                 ss.append(s, i, s.length());
                 break;
             }
@@ -179,10 +169,8 @@ public class Form {
 
     public static List<String> hardWrapList(String s, int len) {
         List<String> l = new ArrayList<>();
-        for(int i = 0; i < s.length(); i+= len)
-        {
-            if(i + len > s.length())
-            {
+        for (int i = 0; i < s.length(); i += len) {
+            if (i + len > s.length()) {
                 l.add(s.substring(i));
                 break;
             }
@@ -315,6 +303,7 @@ public class Form {
                                 suffix = "Month";
                                 div = 12;
 
+                                //noinspection IfStatementWithIdenticalBranches
                                 if (phantom > div) {
                                     phantom /= div;
                                     suffix = "Year";
@@ -545,7 +534,7 @@ public class Form {
         }
 
         if (ms / 1000.0 / 60.0 / 60.0 / 24.0 < 7) {
-            return Form.f(ms / 1000.0 / 60.0 / 24.0, prec) + " days";
+            return Form.f(ms / 1000.0 / 60.0 / 60.0 / 24.0, prec) + " days";
         }
 
         return Form.f(ms, prec) + "ms";

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,8 +38,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class CommandSVC implements IrisService, DecreeSystem {
     private final KMap<String, CompletableFuture<String>> futures = new KMap<>();
-    private CompletableFuture<String> consoleFuture = null;
     private final transient AtomicCache<VirtualDecreeCommand> commandCache = new AtomicCache<>();
+    private CompletableFuture<String> consoleFuture = null;
 
     @Override
     public void onEnable() {

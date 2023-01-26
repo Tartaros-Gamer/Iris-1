@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.actuator.IrisTerrainNormalActuator;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineMode;
+import com.volmit.iris.engine.framework.EngineStage;
 import com.volmit.iris.engine.framework.IrisEngineMode;
 import com.volmit.iris.engine.modifier.IrisCarveModifier;
 import com.volmit.iris.engine.modifier.IrisDepositModifier;
@@ -40,17 +41,30 @@ public class ModeOverworld extends IrisEngineMode implements EngineMode {
         var post = new IrisPostModifier(getEngine());
         var deposit = new IrisDepositModifier(getEngine());
         var perfection = new IrisPerfectionModifier(getEngine());
+        EngineStage sBiome = (x, z, k, p, m, c) -> biome.actuate(x, z, p, m, c);
+        EngineStage sGenMatter = (x, z, k, p, m, c) -> generateMatter(x >> 4, z >> 4, m, c);
+        EngineStage sTerrain = (x, z, k, p, m, c) -> terrain.actuate(x, z, k, m, c);
+        EngineStage sDecorant = (x, z, k, p, m, c) -> decorant.actuate(x, z, k, m, c);
+        EngineStage sCave = (x, z, k, p, m, c) -> cave.modify(x >> 4, z >> 4, k, m, c);
+        EngineStage sDeposit = (x, z, k, p, m, c) -> deposit.modify(x, z, k, m, c);
+        EngineStage sPost = (x, z, k, p, m, c) -> post.modify(x, z, k, m, c);
+        EngineStage sInsertMatter = (x, z, K, p, m, c) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m);
+        EngineStage sPerfection = (x, z, k, p, m, c) -> perfection.modify(x, z, k, m, c);
 
         registerStage(burst(
-                (x, z, k, p, m) -> generateMatter(x >> 4, z >> 4, m),
-                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
+                sGenMatter,
+                sTerrain
         ));
-        registerStage((x, z, k, p, m) -> cave.modify(x >> 4, z >> 4, k, m));
-        registerStage((x, z, k, p, m) -> deposit.modify(x, z, k, m));
-        registerStage((x, z, k, p, m) -> decorant.actuate(x, z, k, m));
-        registerStage((x, z, k, p, m) -> post.modify(x, z, k, m));
-        registerStage((x, z, K, p, m) -> getMantle().insertMatter(x >> 4, z >> 4, BlockData.class, K, m));
-        registerStage((x, z, k, p, m) -> perfection.modify(x, z, k, m));
+        registerStage(burst(
+                sCave,
+                sPost
+        ));
+        registerStage(burst(
+                sDeposit,
+                sInsertMatter,
+                sDecorant
+        ));
+        registerStage(sPerfection);
+
     }
 }

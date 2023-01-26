@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -66,6 +60,8 @@ public class IrisObjectPlacement {
     @MaxNumber(1)
     @Desc("The maximum layer level of a snow filter overtop of this placement. Set to 0 to disable. Max of 1.")
     private double snow = 0;
+    @Desc("Whether or not this object can be targeted by a dolphin.")
+    private boolean isDolphinTarget = false;
     @MinNumber(0)
     @MaxNumber(1)
     @Desc("The chance for this to place in a chunk. If you need multiple per chunk, set this to 1 and use density.")
@@ -75,10 +71,8 @@ public class IrisObjectPlacement {
     private int density = 1;
     @Desc("If the chance check passes, and you specify this, it picks a number in the range based on noise, and 'density' is ignored.")
     private IrisStyledRange densityStyle = null;
-    @MaxNumber(64)
-    @MinNumber(0)
-    @Desc("If the place mode is set to stilt, you can over-stilt it even further into the ground. Especially useful when using fast stilt due to inaccuracies.")
-    private int overStilt = 0;
+    @Desc("When stilting is enabled, this object will define various properties related to it.")
+    private IrisStiltSettings stiltSettings;
     @MaxNumber(64)
     @MinNumber(0)
     @Desc("When bore is enabled, expand max-y of the cuboid it removes")
@@ -124,6 +118,8 @@ public class IrisObjectPlacement {
     @ArrayType(min = 1, type = IrisObjectLoot.class)
     @Desc("The loot tables to apply to these objects")
     private KList<IrisObjectLoot> loot = new KList<>();
+    @Desc("Whether the given loot tables override any and all other loot tables available in the dimension, region or biome.")
+    private boolean overrideGlobalLoot = false;
     @Desc("This object / these objects override the following trees when they grow...")
     @ArrayType(min = 1, type = IrisTree.class)
     private KList<IrisTree> trees = new KList<>();
@@ -146,7 +142,7 @@ public class IrisObjectPlacement {
         p.setUnderwater(underwater);
         p.setBoreExtendMaxY(boreExtendMaxY);
         p.setBoreExtendMinY(boreExtendMinY);
-        p.setOverStilt(overStilt);
+        p.setStiltSettings(stiltSettings);
         p.setDensity(density);
         p.setChance(chance);
         p.setSnow(snow);
@@ -203,6 +199,8 @@ public class IrisObjectPlacement {
             TableCache tc = new TableCache();
 
             for (IrisObjectLoot loot : getLoot()) {
+                if (loot == null)
+                    continue;
                 IrisLootTable table = manager.getLootLoader().load(loot.getName());
                 if (table == null) {
                     Iris.warn("Couldn't find loot table " + loot.getName());

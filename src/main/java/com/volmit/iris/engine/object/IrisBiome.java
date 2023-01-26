@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,7 @@ import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.DependsOn;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -52,9 +46,8 @@ import org.bukkit.Material;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 
-import java.awt.Color;
+import java.awt.*;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -84,7 +77,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @MinNumber(2)
     @Required
     @Desc("This is the human readable name for this biome. This can and should be different than the file name. This is not used for loading biomes in other objects.")
-    private String name = "A Biome";
+    private String name = "Subterranean Land";
     @ArrayType(min = 1, type = IrisBiomeCustom.class)
     @Desc("If the biome type custom is defined, specify this")
     private KList<IrisBiomeCustom> customDerivitives;
@@ -103,10 +96,6 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     private KList<IrisBlockDrops> blockDrops = new KList<>();
     @Desc("Reference loot tables in this area")
     private IrisLootReference loot = new IrisLootReference();
-    @MinNumber(0.0001)
-    @DependsOn({"biomeStyle", "biomeZoom", "biomeScatter"})
-    @Desc("This zooms in the biome colors if multiple derivatives are chosen")
-    private double biomeZoom = 1;
     @Desc("Layers no longer descend from the surface block, they descend from the max possible height the biome can produce (constant) creating mesa like layers.")
     private boolean lockLayers = false;
     @Desc("The max layers to iterate below the surface for locked layer biomes (mesa).")
@@ -178,6 +167,24 @@ public class IrisBiome extends IrisRegistrant implements IRare {
     @Desc("Define biome deposit generators that add onto the existing regional and global deposit generators")
     private KList<IrisDepositGenerator> deposits = new KList<>();
     private transient InferredType inferredType;
+    @Desc("Collection of ores to be generated")
+    @ArrayType(type = IrisOreGenerator.class, min = 1)
+    private KList<IrisOreGenerator> ores = new KList<>();
+
+    public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
+        if (ores.isEmpty()) {
+            return null;
+        }
+        BlockData b = null;
+        for (IrisOreGenerator i : ores) {
+
+            b = i.generate(x, y, z, rng, data);
+            if (b != null) {
+                return b;
+            }
+        }
+        return null;
+    }
 
     public Biome getVanillaDerivative() {
         return vanillaDerivative == null ? derivative : vanillaDerivative;
@@ -280,7 +287,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
             height += i.getHeight(xg, x, z, seed);
         }
 
-        return Math.max(0, Math.min(height, 255));
+        return Math.max(0, Math.min(height, xg.getHeight()));
     }
 
     public CNG getBiomeGenerator(RNG random) {
@@ -435,7 +442,7 @@ public class IrisBiome extends IrisRegistrant implements IRare {
         }
 
         for (int i = 0; i < maxDepth; i++) {
-            int offset = (255 - height) - i;
+            int offset = (512 - height) - i;
             int index = offset % data.size();
             real.add(data.get(Math.max(index, 0)));
         }

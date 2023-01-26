@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,18 +21,20 @@ package com.volmit.iris.util.nbt.mca.palette;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import it.unimi.dsi.fastutil.Hash;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
 
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
 public class MCAIdMapper<T> implements MCAIdMap<T> {
     public static final int DEFAULT = -1;
-    private final IdentityHashMap<T, Integer> tToId;
+    private final Object2IntMap<T> tToId;
     private final List<T> idToT;
     private int nextId;
 
-    public MCAIdMapper(IdentityHashMap<T, Integer> tToId, List<T> idToT, int nextId) {
+    public MCAIdMapper(Object2IntMap<T> tToId, List<T> idToT, int nextId) {
         this.tToId = tToId;
         this.idToT = idToT;
         this.nextId = nextId;
@@ -44,7 +46,7 @@ public class MCAIdMapper<T> implements MCAIdMap<T> {
 
     public MCAIdMapper(int var0) {
         this.idToT = Lists.newArrayListWithExpectedSize(var0);
-        this.tToId = new IdentityHashMap<>(var0);
+        this.tToId = new Object2IntOpenCustomHashMap<>(var0, IdentityStrategy.INSTANCE);
     }
 
     public void addMapping(T var0, int var1) {
@@ -81,5 +83,20 @@ public class MCAIdMapper<T> implements MCAIdMap<T> {
 
     public int size() {
         return this.tToId.size();
+    }
+
+    enum IdentityStrategy implements Hash.Strategy<Object> {
+        INSTANCE;
+
+        IdentityStrategy() {
+        }
+
+        public int hashCode(Object var0) {
+            return System.identityHashCode(var0);
+        }
+
+        public boolean equals(Object var0, Object var1) {
+            return var0 == var1;
+        }
     }
 }

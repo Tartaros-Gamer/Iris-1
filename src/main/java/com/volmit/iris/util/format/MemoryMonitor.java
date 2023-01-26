@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,15 +23,15 @@ import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.Looper;
 
 public class MemoryMonitor {
+    private final ChronoLatch cl;
+    private final RollingSequence pressureAvg;
+    private final Runtime runtime;
     private Looper looper;
     private long usedMemory;
     private long garbageMemory;
     private long garbageLast;
     private long garbageBin;
     private long pressure;
-    private final ChronoLatch cl;
-    private final RollingSequence pressureAvg;
-    private final Runtime runtime;
 
     public MemoryMonitor(int sampleDelay) {
         this.runtime = Runtime.getRuntime();
@@ -75,6 +75,7 @@ public class MemoryMonitor {
         return usedMemory / (double) getMaxBytes();
     }
 
+    @SuppressWarnings("IfStatementWithIdenticalBranches")
     private void sample() {
         long used = getVMUse();
         if (usedMemory == -1) {

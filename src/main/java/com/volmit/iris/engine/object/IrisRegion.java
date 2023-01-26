@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,7 @@ import com.volmit.iris.core.gui.components.RenderType;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -44,12 +39,12 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.bukkit.block.data.BlockData;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.Random;
 
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -93,10 +88,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @ArrayType(min = 1, type = IrisBlockDrops.class)
     @Desc("Define custom block drops for this region")
     private KList<IrisBlockDrops> blockDrops = new KList<>();
-    @MinNumber(0.0001)
-    @MaxNumber(1)
-    @Desc("The shore ration (How much percent of land should be a shore)")
-    private double shoreRatio = 0.13;
     @RegistryListResource(IrisSpawner.class)
     @ArrayType(min = 1, type = IrisObjectPlacement.class)
     @Desc("Objects define what schematics (iob files) iris will place in this region")
@@ -124,10 +115,6 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     @MinNumber(0.0001)
     @Desc("How large cave biomes are in this region")
     private double caveBiomeZoom = 1;
-    @MinNumber(0.0001)
-    @MaxNumber(1)
-    @Desc("The biome implosion ratio, how much to implode biomes into children (chance)")
-    private double biomeImplosionRatio = 0.4;
     @Desc("Carving configuration for the dimension")
     private IrisCarving carving = new IrisCarving();
     @Desc("Configuration of fluid bodies such as rivers & lakes")
@@ -158,24 +145,26 @@ public class IrisRegion extends IrisRegistrant implements IRare {
     private IrisGeneratorStyle riverStyle = NoiseStyle.VASCULAR_THIN.style().zoomed(7.77);
     @Desc("The style of lakes")
     private IrisGeneratorStyle lakeStyle = NoiseStyle.CELLULAR_IRIS_THICK.style();
-    @Desc("The style of river chances")
-    private IrisGeneratorStyle riverChanceStyle = NoiseStyle.SIMPLEX.style().zoomed(4);
-    @Desc("Generate lakes in this region")
-    private boolean lakes = true;
-    @Desc("Generate rivers in this region")
-    private boolean rivers = true;
-    @MinNumber(1)
-    @Desc("Generate lakes in this region")
-    private int lakeRarity = 22;
-    @MinNumber(1)
-    @Desc("Generate rivers in this region")
-    private int riverRarity = 3;
-    @MinNumber(0)
-    @MaxNumber(1)
-    @Desc("Generate rivers in this region")
-    private double riverThickness = 0.1;
     @Desc("A color for visualizing this region with a color. I.e. #F13AF5. This will show up on the map.")
     private String color = null;
+    @Desc("Collection of ores to be generated")
+    @ArrayType(type = IrisOreGenerator.class, min = 1)
+    private KList<IrisOreGenerator> ores = new KList<>();
+
+    public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
+        if (ores.isEmpty()) {
+            return null;
+        }
+        BlockData b = null;
+        for (IrisOreGenerator i : ores) {
+
+            b = i.generate(x, y, z, rng, data);
+            if (b != null) {
+                return b;
+            }
+        }
+        return null;
+    }
 
     public String getName() {
         return name;

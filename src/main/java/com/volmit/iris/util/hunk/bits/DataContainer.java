@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,14 +18,9 @@
 
 package com.volmit.iris.util.hunk.bits;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.data.Varint;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -56,8 +51,7 @@ public class DataContainer<T> {
         this.bits = new AtomicInteger(palette.get().bits());
     }
 
-    public static String readBitString(DataInputStream din) throws IOException
-    {
+    public static String readBitString(DataInputStream din) throws IOException {
         DataContainer<Character> c = new DataContainer<>(din, new Writable<Character>() {
             @Override
             public Character readNodeData(DataInputStream din) throws IOException {
@@ -72,8 +66,7 @@ public class DataContainer<T> {
 
         StringBuilder sb = new StringBuilder();
 
-        for(int i = c.size()-1; i >= 0; i--)
-        {
+        for (int i = c.size() - 1; i >= 0; i--) {
             sb.setCharAt(i, c.get(i));
         }
 
@@ -93,21 +86,42 @@ public class DataContainer<T> {
             }
         }, s.length());
 
-        for(int i = 0; i < s.length(); i++)
-        {
+        for (int i = 0; i < s.length(); i++) {
             c.set(i, s.charAt(i));
         }
 
         c.writeDos(dos);
     }
 
-    public DataBits getData()
-    {
+    private static int[] computeBitLimits() {
+        int[] m = new int[16];
+
+        for (int i = 0; i < m.length; i++) {
+            m[i] = (int) Math.pow(2, i);
+        }
+
+        return m;
+    }
+
+    protected static int bits(int size) {
+        if (DataContainer.BIT[INITIAL_BITS] >= size) {
+            return INITIAL_BITS;
+        }
+
+        for (int i = 0; i < DataContainer.BIT.length; i++) {
+            if (DataContainer.BIT[i] >= size) {
+                return i;
+            }
+        }
+
+        return DataContainer.BIT.length - 1;
+    }
+
+    public DataBits getData() {
         return data.get();
     }
 
-    public Palette<T> getPalette()
-    {
+    public Palette<T> getPalette() {
         return palette.get();
     }
 
@@ -136,7 +150,7 @@ public class DataContainer<T> {
 
     private Palette<T> newPalette(DataInputStream din) throws IOException {
         int paletteSize = Varint.readUnsignedVarInt(din);
-        Palette<T> d = newPalette(bits(paletteSize+1));
+        Palette<T> d = newPalette(bits(paletteSize + 1));
         d.from(paletteSize, writer, din);
         return d;
     }
@@ -156,8 +170,7 @@ public class DataContainer<T> {
     }
 
     public void set(int position, T t) {
-        synchronized (this)
-        {
+        synchronized (this) {
             int id = palette.get().id(t);
 
             if (id == -1) {
@@ -176,8 +189,7 @@ public class DataContainer<T> {
     }
 
     public T get(int position) {
-        synchronized (this)
-        {
+        synchronized (this) {
             int id = data.get().get(position) + 1;
 
             if (id <= 0) {
@@ -197,30 +209,6 @@ public class DataContainer<T> {
             this.bits.set(bits);
             data.set(data.get().setBits(bits));
         }
-    }
-
-    private static int[] computeBitLimits() {
-        int[] m = new int[16];
-
-        for (int i = 0; i < m.length; i++) {
-            m[i] = (int) Math.pow(2, i);
-        }
-
-        return m;
-    }
-
-    protected static int bits(int size) {
-        if (DataContainer.BIT[INITIAL_BITS] >= size) {
-            return INITIAL_BITS;
-        }
-
-        for (int i = 0; i < DataContainer.BIT.length; i++) {
-            if (DataContainer.BIT[i] >= size) {
-                return i;
-            }
-        }
-
-        return DataContainer.BIT.length - 1;
     }
 
     public int size() {

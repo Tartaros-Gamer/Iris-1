@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import java.awt.Color;
+import java.awt.*;
 
 public class WandSelection {
     private final Cuboid c;
@@ -38,8 +38,8 @@ public class WandSelection {
     }
 
     public void draw() {
-        double accuracy = M.lerpInverse(0, 64 * 64, p.getLocation().distanceSquared(c.getCenter()));
-        double dist = M.lerp(0.125, 3.5, accuracy);
+        double accuracy;
+        double dist;
 
         for (double i = c.getLowerX() - 1; i < c.getUpperX() + 1; i += 0.25) {
             for (double j = c.getLowerY() - 1; j < c.getUpperY() + 1; j += 0.25) {

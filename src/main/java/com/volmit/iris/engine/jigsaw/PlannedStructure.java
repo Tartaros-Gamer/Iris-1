@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,16 +23,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IObjectPlacer;
-import com.volmit.iris.engine.object.IrisDirection;
-import com.volmit.iris.engine.object.IrisJigsawPiece;
-import com.volmit.iris.engine.object.IrisJigsawPieceConnector;
-import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisObjectRotation;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.ObjectPlaceMode;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.math.RNG;
@@ -42,7 +33,7 @@ import org.bukkit.World;
 
 @Data
 public class PlannedStructure {
-    private static transient ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
+    private static ConcurrentLinkedHashMap<String, IrisObject> objectRotationCache
             = new ConcurrentLinkedHashMap.Builder<String, IrisObject>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)
@@ -107,7 +98,7 @@ public class PlannedStructure {
         int zz = i.getPosition().getZ() + sz;
         RNG rngf = new RNG(Cache.key(xx, zz));
         int offset = i.getPosition().getY() - startHeight;
-        int height = 0;
+        int height;
 
         if (i.getStructure().getStructure().getLockY() == -1) {
             if (i.getStructure().getStructure().getOverrideYRange() != null) {
@@ -126,8 +117,7 @@ public class PlannedStructure {
         }
 
         int id = rng.i(0, Integer.MAX_VALUE);
-        vo.place(xx, height, zz, placer, options, rng, e.shouldReduce(eng) ? null : (b)
-                -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
+        vo.place(xx, height, zz, placer, options, rng, (b, data) -> e.set(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id), null, getData());
     }
 
     public void place(World world) {
@@ -220,10 +210,7 @@ public class PlannedStructure {
         return generateRotatedPiece(piece, pieceConnector, idea, IrisObjectRotation.of(x, y, z));
     }
 
-    private boolean generatePositionedPiece(PlannedPiece piece,
-                                            IrisJigsawPieceConnector pieceConnector,
-                                            PlannedPiece test,
-                                            IrisJigsawPieceConnector testConnector) {
+    private boolean generatePositionedPiece(PlannedPiece piece, IrisJigsawPieceConnector pieceConnector, PlannedPiece test, IrisJigsawPieceConnector testConnector) {
         test.setPosition(new IrisPosition(0, 0, 0));
         IrisPosition connector = piece.getWorldPosition(pieceConnector);
         IrisDirection desiredDirection = pieceConnector.getDirection().reverse();

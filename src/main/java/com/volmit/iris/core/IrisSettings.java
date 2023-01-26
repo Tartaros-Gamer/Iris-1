@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ import java.io.IOException;
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @Data
 public class IrisSettings {
-    public static transient IrisSettings settings;
+    public static IrisSettings settings;
     private IrisSettingsGeneral general = new IrisSettingsGeneral();
     private IrisSettingsWorld world = new IrisSettingsWorld();
     private IrisSettingsGUI gui = new IrisSettingsGUI();
@@ -48,6 +48,57 @@ public class IrisSettings {
             case 0, 1, 2 -> 1;
             default -> Math.max(c, 2);
         };
+    }
+
+    public static IrisSettings get() {
+        if (settings != null) {
+            return settings;
+        }
+
+        settings = new IrisSettings();
+
+        File s = Iris.instance.getDataFile("settings.json");
+
+        if (!s.exists()) {
+            try {
+                IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+            } catch (JSONException | IOException e) {
+                e.printStackTrace();
+                Iris.reportError(e);
+            }
+        } else {
+            try {
+                String ss = IO.readAll(s);
+                settings = new Gson().fromJson(ss, IrisSettings.class);
+                try {
+                    IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } catch (Throwable ee) {
+                // Iris.reportError(ee); causes a self-reference & stackoverflow
+                Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
+            }
+        }
+
+        return settings;
+    }
+
+    public static void invalidate() {
+        synchronized (settings) {
+            settings = null;
+        }
+    }
+
+    public void forceSave() {
+        File s = Iris.instance.getDataFile("settings.json");
+
+        try {
+            IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            Iris.reportError(e);
+        }
     }
 
     @Data
@@ -74,6 +125,7 @@ public class IrisSettings {
         public double targetSpawnEntitiesPerChunk = 0.95;
         public boolean markerEntitySpawningSystem = true;
         public boolean effectSystem = true;
+        public boolean worldEditWandCUI = true;
     }
 
     @Data
@@ -120,7 +172,6 @@ public class IrisSettings {
     @Data
     public static class IrisSettingsGenerator {
         public String defaultWorldType = "overworld";
-        public boolean headlessPregeneration = true;
         public int maxBiomeChildDepth = 4;
         public boolean preventLeafDecay = true;
     }
@@ -131,56 +182,5 @@ public class IrisSettings {
         public boolean openVSCode = true;
         public boolean disableTimeAndWeather = true;
         public boolean autoStartDefaultStudio = false;
-    }
-
-    public static IrisSettings get() {
-        if (settings != null) {
-            return settings;
-        }
-
-        settings = new IrisSettings();
-
-        File s = Iris.instance.getDataFile("settings.json");
-
-        if (!s.exists()) {
-            try {
-                IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-            } catch (JSONException | IOException e) {
-                e.printStackTrace();
-                Iris.reportError(e);
-            }
-        } else {
-            try {
-                String ss = IO.readAll(s);
-                settings = new Gson().fromJson(ss, IrisSettings.class);
-                try {
-                    IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } catch (Throwable ee) {
-                Iris.reportError(ee);
-                Iris.error("Configuration Error in settings.json! " + ee.getClass().getSimpleName() + ": " + ee.getMessage());
-            }
-        }
-
-        return settings;
-    }
-
-    public static void invalidate() {
-        synchronized (settings) {
-            settings = null;
-        }
-    }
-
-    public void forceSave() {
-        File s = Iris.instance.getDataFile("settings.json");
-
-        try {
-            IO.writeAll(s, new JSONObject(new Gson().toJson(settings)).toString(4));
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
-            Iris.reportError(e);
-        }
     }
 }

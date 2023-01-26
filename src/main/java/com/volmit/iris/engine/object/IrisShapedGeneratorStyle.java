@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,7 @@
 package com.volmit.iris.engine.object;
 
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,14 +38,14 @@ public class IrisShapedGeneratorStyle {
     private IrisGeneratorStyle generator = new IrisGeneratorStyle(NoiseStyle.IRIS);
 
     @Required
-    @MinNumber(-256) // TODO: WARNING HEIGHT
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MinNumber(-2032) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The min block value")
     private int min = 0;
 
     @Required
-    @MinNumber(-256) // TODO: WARNING HEIGHT
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MinNumber(-2032) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The max block value")
     private int max = 0;
 

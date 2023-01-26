@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,16 +20,14 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.RegistrySVC;
+import com.volmit.iris.core.service.ExternalDataSVC;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import it.unimi.dsi.fastutil.ints.IntSet;
-import it.unimi.dsi.fastutil.ints.IntSets;
+import it.unimi.dsi.fastutil.ints.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Leaves;
@@ -38,12 +36,14 @@ import org.bukkit.block.data.type.PointedDripstone;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.bukkit.Material.*;
 
 public class B {
+    private static final KMap<String, BlockData> custom = new KMap<>();
+
     private static final Material AIR_MATERIAL = Material.AIR;
     private static final BlockData AIR = AIR_MATERIAL.createBlockData();
     private static final IntSet foliageCache = buildFoliageCache();
@@ -195,7 +195,10 @@ public class B {
                 STONE_BUTTON,
                 WARPED_BUTTON,
                 TORCH,
-                SOUL_TORCH
+                SOUL_TORCH,
+                GLOW_LICHEN,
+                VINE,
+                SCULK_VEIN
         }).forEach((i) -> b.add(i.ordinal()));
         b.addAll(foliageCache);
 
@@ -305,6 +308,11 @@ public class B {
     }
 
     public static boolean canPlaceOnto(Material mat, Material onto) {
+        if ((onto.equals(CRIMSON_NYLIUM) || onto.equals(WARPED_NYLIUM)) &&
+                (mat.equals(CRIMSON_FUNGUS) || mat.equals(CRIMSON_ROOTS) || mat.equals(WARPED_FUNGUS) || mat.equals(WARPED_ROOTS))) {
+            return true;
+        }
+
         if (isFoliage(mat)) {
             if (!isFoliagePlantable(onto)) {
                 return false;
@@ -393,12 +401,18 @@ public class B {
     }
 
     public static boolean isSolid(BlockData mat) {
+        if (mat == null)
+            return false;
         return mat.getMaterial().isSolid();
     }
 
     public static BlockData getOrNull(String bdxf) {
         try {
             String bd = bdxf.trim();
+
+            if (!custom.isEmpty() && custom.containsKey(bd)) {
+                return custom.get(bd);
+            }
 
             if (bd.startsWith("minecraft:cauldron[level=")) {
                 bd = bd.replaceAll("\\Q:cauldron[\\E", ":water_cauldron[");
@@ -439,42 +453,41 @@ public class B {
         return AIR;
     }
 
+    private static synchronized BlockData createBlockData(String s) {
+        try {
+            return Bukkit.createBlockData(s);
+        } catch (IllegalArgumentException e) {
+            if (s.contains("[")) {
+                return createBlockData(s.split("\\Q[\\E")[0]);
+            }
+        }
+
+        Iris.error("Can't find block data for " + s);
+        return null;
+    }
+
     private static BlockData parseBlockData(String ix) {
         try {
             BlockData bx = null;
 
-            if (!ix.startsWith("minecraft:")) {
-                if (ix.startsWith("oraxen:") && Iris.linkOraxen.supported()) {
-                    bx = Iris.linkOraxen.getBlockDataFor(ix.split("\\Q:\\E")[1]);
-                }
-
-                if (bx == null) {
-                    try {
-                        if (ix.contains(":")) {
-                            String[] v = ix.toLowerCase().split("\\Q:\\E");
-                            Supplier<BlockData> b = Iris.service(RegistrySVC.class).getCustomBlockRegistry().resolve(v[0], v[1]);
-
-                            if (b != null) {
-                                bx = b.get();
-                            }
-                        }
-                    } catch (Throwable e) {
-                        e.printStackTrace();// TODO: REMOVE
-                    }
-                }
+            if (!ix.startsWith("minecraft:") && ix.contains(":")) {
+                NamespacedKey key = NamespacedKey.fromString(ix);
+                Optional<BlockData> bd = Iris.service(ExternalDataSVC.class).getBlockData(key);
+                if (bd.isPresent())
+                    bx = bd.get();
             }
 
             if (bx == null) {
                 try {
-                    bx = Bukkit.createBlockData(ix.toLowerCase());
+                    bx = createBlockData(ix.toLowerCase());
                 } catch (Throwable e) {
-
+                    e.printStackTrace();
                 }
             }
 
             if (bx == null) {
                 try {
-                    bx = Bukkit.createBlockData("minecraft:" + ix.toLowerCase());
+                    bx = createBlockData("minecraft:" + ix.toLowerCase());
                 } catch (Throwable e) {
 
                 }
@@ -534,7 +547,7 @@ public class B {
             for (String key : stateMap.keySet()) { //Iterate through every state and check if its valid
                 try {
                     String newState = block + "[" + key + "=" + stateMap.get(key) + "]";
-                    Bukkit.createBlockData(newState);
+                    createBlockData(newState);
                     newStates.put(key, stateMap.get(key));
 
                 } catch (IllegalArgumentException ignored) {
@@ -548,7 +561,7 @@ public class B {
             Iris.debug("Converting " + ix + " to " + newBlock);
 
             try {
-                return Bukkit.createBlockData(newBlock);
+                return createBlockData(newBlock);
             } catch (Throwable e1) {
                 Iris.reportError(e1);
             }
@@ -634,19 +647,9 @@ public class B {
             }
         }
 
-        try {
-            for (String i : Iris.linkOraxen.getItemTypes()) {
-                bt.add("oraxen:" + i);
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
-
-        try {
-            bt.addAll(Iris.service(RegistrySVC.class).getCustomBlockRegistry().compile());
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
+        for (NamespacedKey id : Iris.service(ExternalDataSVC.class).getAllIdentifiers())
+            bt.add(id.toString());
+        bt.addAll(custom.k());
 
         return bt.toArray(new String[0]);
     }
@@ -664,5 +667,16 @@ public class B {
 
     public static boolean isWaterLogged(BlockData b) {
         return (b instanceof Waterlogged) && ((Waterlogged) b).isWaterlogged();
+    }
+
+    public static void registerCustomBlockData(String namespace, String key, BlockData blockData) {
+        custom.put(namespace + ":" + key, blockData);
+    }
+
+    public static boolean isVineBlock(BlockData data) {
+        return switch (data.getMaterial()) {
+            case VINE, SCULK_VEIN, GLOW_LICHEN -> true;
+            default -> false;
+        };
     }
 }

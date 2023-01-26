@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,12 +24,10 @@ import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.pregenerator.PregenTask;
 import com.volmit.iris.core.pregenerator.PregeneratorMethod;
-import com.volmit.iris.core.pregenerator.methods.HeadlessPregenMethod;
 import com.volmit.iris.core.pregenerator.methods.HybridPregenMethod;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.platform.HeadlessGenerator;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.plugin.VolmitSender;
 import org.bukkit.Bukkit;
@@ -37,12 +35,17 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Something you really want to wear if working on Iris. Shit gets pretty hectic down there.
  * Hope you packed snacks & road sodas.
  */
 public class IrisToolbelt {
+    public static Map<String, Boolean> toolbeltConfiguration = new HashMap<>();
+
     /**
      * Will find / download / search for the dimension or return null
      * <p>
@@ -109,8 +112,24 @@ public class IrisToolbelt {
     public static PlatformChunkGenerator access(World world) {
         if (isIrisWorld(world)) {
             return ((PlatformChunkGenerator) world.getGenerator());
-        }
-
+        } /*else {
+            Iris.warn("""
+                    "---------- No World? ---------------
+                    ⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
+                    ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
+                    ⠀⠀⢀⢀⢄⢬⢪⡪⡎⣆⡈⠚⠜⠕⠇⠗⠝⢕⢯⢫⣞⣯⣿⣻⡽⣏⢗⣗⠏⠀
+                    ⠀⠪⡪⡪⣪⢪⢺⢸⢢⢓⢆⢤⢀⠀⠀⠀⠀⠈⢊⢞⡾⣿⡯⣏⢮⠷⠁⠀⠀
+                    ⠀⠀⠀⠈⠊⠆⡃⠕⢕⢇⢇⢇⢇⢇⢏⢎⢎⢆⢄⠀⢑⣽⣿⢝⠲⠉⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⠀⡿⠂⠠⠀⡇⢇⠕⢈⣀⠀⠁⠡⠣⡣⡫⣂⣿⠯⢪⠰⠂⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⡦⡙⡂⢀⢤⢣⠣⡈⣾⡃⠠⠄⠀⡄⢱⣌⣶⢏⢊⠂⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⢝⡲⣜⡮⡏⢎⢌⢂⠙⠢⠐⢀⢘⢵⣽⣿⡿⠁⠁⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⠨⣺⡺⡕⡕⡱⡑⡆⡕⡅⡕⡜⡼⢽⡻⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⣼⣳⣫⣾⣵⣗⡵⡱⡡⢣⢑⢕⢜⢕⡝⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⣴⣿⣾⣿⣿⣿⡿⡽⡑⢌⠪⡢⡣⣣⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⡟⡾⣿⢿⢿⢵⣽⣾⣼⣘⢸⢸⣞⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+                    """);
+        }*/
         return null;
     }
 
@@ -134,10 +153,6 @@ public class IrisToolbelt {
      * @return the pregenerator job (already started)
      */
     public static PregeneratorJob pregenerate(PregenTask task, PlatformChunkGenerator gen) {
-        if (gen.isHeadless()) {
-            return pregenerate(task, new HeadlessPregenMethod(((HeadlessGenerator) gen).getWorld(), (HeadlessGenerator) gen), gen.getEngine());
-        }
-
         return pregenerate(task, new HybridPregenMethod(gen.getEngine().getWorld().realWorld(),
                 IrisSettings.getThreadCount(IrisSettings.get().getConcurrency().getParallelism())), gen.getEngine());
     }
@@ -193,7 +208,6 @@ public class IrisToolbelt {
                     new VolmitSender(j, Iris.instance.getTag()).sendMessage("You have been evacuated from this world. " + m);
                     j.teleport(i.getSpawnLocation());
                 }
-
                 return true;
             }
         }
@@ -205,7 +219,27 @@ public class IrisToolbelt {
         return isIrisWorld(i) && access(i).isStudio();
     }
 
-    public static boolean isHeadless(World i) {
-        return isIrisWorld(i) && access(i).isHeadless();
+    public static void retainMantleDataForSlice(String className) {
+        toolbeltConfiguration.put("retain.mantle." + className, true);
+    }
+
+    public static <T> T getMantleData(World world, int x, int y, int z, Class<T> of) {
+        PlatformChunkGenerator e = access(world);
+        if (e == null) {
+            return null;
+        }
+        return e.getEngine().getMantle().getMantle().get(x, y - world.getMinHeight(), z, of);
+    }
+
+    public static <T> void deleteMantleData(World world, int x, int y, int z, Class<T> of) {
+        PlatformChunkGenerator e = access(world);
+        if (e == null) {
+            return;
+        }
+        e.getEngine().getMantle().getMantle().remove(x, y - world.getMinHeight(), z, of);
+    }
+
+    public static boolean removeWorld(World world) throws IOException {
+        return IrisCreator.removeFromBukkitYml(world.getName());
     }
 }

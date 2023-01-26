@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 package com.volmit.iris.engine.framework;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 
@@ -28,13 +29,13 @@ public abstract class EngineAssignedModifier<T> extends EngineAssignedComponent 
     }
 
     @BlockCoordinates
-    public abstract void onModify(int x, int z, Hunk<T> output, boolean multicore);
+    public abstract void onModify(int x, int z, Hunk<T> output, boolean multicore, ChunkContext context);
 
     @BlockCoordinates
     @Override
-    public void modify(int x, int z, Hunk<T> output, boolean multicore) {
+    public void modify(int x, int z, Hunk<T> output, boolean multicore, ChunkContext context) {
         try {
-            onModify(x, z, output, multicore);
+            onModify(x, z, output, multicore, context);
         } catch (Throwable e) {
             Iris.error("Modifier Failure: " + getName());
             e.printStackTrace();

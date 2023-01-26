@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,13 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.data.DataProvider;
 import com.volmit.iris.util.io.IO;
@@ -49,7 +43,6 @@ import org.bukkit.block.data.BlockData;
 import java.io.File;
 import java.io.IOException;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor
@@ -59,6 +52,23 @@ import java.io.IOException;
 public class IrisDimension extends IrisRegistrant {
     public static final BlockData STONE = Material.STONE.createBlockData();
     public static final BlockData WATER = Material.WATER.createBlockData();
+    private static final String DP_OVERWORLD_DEFAULT = """
+            {
+                "ultrawarm": false,
+                "natural": true,
+                "coordinate_scale": 1.0,
+                "has_skylight": true,
+                "has_ceiling": false,
+                "ambient_light": 0,
+                "piglin_safe": false,
+                "bed_works": true,
+                "respawn_anchor_works": true,
+                "has_raids": true,
+                "monster_spawn_block_light_limit": 7,
+                "monster_spawn_light_level": 7,
+                "infiniburn": "#minecraft:infiniburn_overworld",
+                "effects": "minecraft:overworld"
+            }""";
     private final transient AtomicCache<Position2> parallaxSize = new AtomicCache<>();
     private final transient AtomicCache<CNG> rockLayerGenerator = new AtomicCache<>();
     private final transient AtomicCache<CNG> fluidLayerGenerator = new AtomicCache<>();
@@ -72,6 +82,10 @@ public class IrisDimension extends IrisRegistrant {
     @Required
     @Desc("The human readable name of this dimension")
     private String name = "A Dimension";
+    @MinNumber(1)
+    @MaxNumber(2032)
+    @Desc("Maximum height at which players can be teleported to through gameplay.")
+    private int logicalHeight = 256;
     @RegistryListResource(IrisJigsawStructure.class)
     @Desc("If defined, Iris will place the given jigsaw structure where minecraft should place the overworld stronghold.")
     private String stronghold;
@@ -155,13 +169,15 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisJigsawStructurePlacement> jigsawStructures = new KList<>();
     @Required
     @MinNumber(0)
-    @MaxNumber(255)
+    @MaxNumber(1024)
     @Desc("The fluid height for this dimension")
     private int fluidHeight = 63;
+    @Desc("Define the min and max Y bounds of this dimension. Please keep in mind that Iris internally generates from 0 to (max - min). \n\nFor example at -64 to 320, Iris is internally generating to 0 to 384, then on outputting chunks, it shifts it down by the min height (64 blocks). The default is -64 to 320. \n\nThe fluid height is placed at (fluid height + min height). So a fluid height of 63 would actually show up in the world at 1.")
+    private IrisRange dimensionHeight = new IrisRange(-64, 320);
     @RegistryListResource(IrisBiome.class)
     @Desc("Keep this either undefined or empty. Setting any biome name into this will force iris to only generate the specified biome. Great for testing.")
     private String focus = "";
-    @RegistryListResource(IrisBiome.class)
+    @RegistryListResource(IrisRegion.class)
     @Desc("Keep this either undefined or empty. Setting any region name into this will force iris to only generate the specified region. Great for testing.")
     private String focusRegion = "";
     @MinNumber(0.0001)
@@ -211,6 +227,10 @@ public class IrisDimension extends IrisRegistrant {
     private KList<IrisShapedGeneratorStyle> overlayNoise = new KList<>();
     @Desc("If true, the spawner system has infinite energy. This is NOT recommended because it would allow for mobs to keep spawning over and over without a rate limit")
     private boolean infiniteEnergy = false;
+    @MinNumber(0)
+    @MaxNumber(10000)
+    @Desc("This is the maximum energy you can have in a dimension")
+    private double maximumEnergy = 1000;
     @MinNumber(0.0001)
     @MaxNumber(512)
     @Desc("The rock zoom mostly for zooming in on a wispy palette")
@@ -219,8 +239,40 @@ public class IrisDimension extends IrisRegistrant {
     private IrisMaterialPalette rockPalette = new IrisMaterialPalette().qclear().qadd("stone");
     @Desc("The palette of blocks for 'water'")
     private IrisMaterialPalette fluidPalette = new IrisMaterialPalette().qclear().qadd("water");
-    @Desc("Cartographer map trade overrides")
-    private IrisVillagerOverride patchCartographers = new IrisVillagerOverride().setDisableTrade(false);
+    @Desc("Remove cartographers so they do not crash the server (Iris worlds only)")
+    private boolean removeCartographersDueToCrash = true;
+    @Desc("Notify players of cancelled cartographer villager in this radius in blocks (set to -1 to disable, -2 for everyone)")
+    private int notifyPlayersOfCartographerCancelledRadius = 30;
+    @Desc("Collection of ores to be generated")
+    @ArrayType(type = IrisOreGenerator.class, min = 1)
+    private KList<IrisOreGenerator> ores = new KList<>();
+    @MinNumber(0)
+    @MaxNumber(318)
+    @Desc("The Subterrain Fluid Layer Height")
+    private int caveLavaHeight = 8;
+
+    public int getMaxHeight() {
+        return (int) getDimensionHeight().getMax();
+    }
+
+    public int getMinHeight() {
+        return (int) getDimensionHeight().getMin();
+    }
+
+    public BlockData generateOres(int x, int y, int z, RNG rng, IrisData data) {
+        if (ores.isEmpty()) {
+            return null;
+        }
+        BlockData b = null;
+        for (IrisOreGenerator i : ores) {
+
+            b = i.generate(x, y, z, rng, data);
+            if (b != null) {
+                return b;
+            }
+        }
+        return null;
+    }
 
     public KList<Position2> getStrongholds(long seed) {
         return strongholdsCache.aquire(() -> {
@@ -240,6 +292,10 @@ public class IrisDimension extends IrisRegistrant {
 
             return pos;
         });
+    }
+
+    public int getFluidHeight() {
+        return fluidHeight - (int) dimensionHeight.getMin();
     }
 
     public CNG getCoordFracture(RNG rng, int signature) {
@@ -359,6 +415,11 @@ public class IrisDimension extends IrisRegistrant {
             }
         }
 
+        if (!dimensionHeight.equals(new IrisRange(-64, 320)) && this.name.equalsIgnoreCase("overworld")) {
+            Iris.verbose("    Installing Data Pack Dimension Type: \"minecraft:overworld\"");
+            changed = writeDimensionType(changed, datapacks);
+        }
+
         if (write) {
             File mcm = new File(datapacks, "iris/pack.mcmeta");
             try {
@@ -366,7 +427,7 @@ public class IrisDimension extends IrisRegistrant {
                         {
                             "pack": {
                                 "description": "Iris Data Pack. This pack contains all installed Iris Packs' resources.",
-                                "pack_format": 7
+                                "pack_format": 10
                             }
                         }
                         """);
@@ -393,5 +454,27 @@ public class IrisDimension extends IrisRegistrant {
     @Override
     public void scanForErrors(JSONObject p, VolmitSender sender) {
 
+    }
+
+    public boolean writeDimensionType(boolean changed, File datapacks) {
+        File dimType = new File(datapacks, "iris/data/minecraft/dimension_type/overworld.json");
+        if (!dimType.exists())
+            changed = true;
+        dimType.getParentFile().mkdirs();
+        try {
+            IO.writeAll(dimType, generateDatapackJson());
+        } catch (IOException e) {
+            Iris.reportError(e);
+            e.printStackTrace();
+        }
+        return changed;
+    }
+
+    private String generateDatapackJson() {
+        JSONObject obj = new JSONObject(DP_OVERWORLD_DEFAULT);
+        obj.put("min_y", dimensionHeight.getMin());
+        obj.put("height", dimensionHeight.getMax() - dimensionHeight.getMin());
+        obj.put("logical_height", logicalHeight);
+        return obj.toString(4);
     }
 }

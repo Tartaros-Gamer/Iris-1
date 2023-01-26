@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,8 +56,7 @@ public class IrisBlockDrops {
     private boolean replaceVanillaDrops = false;
 
     public boolean shouldDropFor(BlockData data, IrisData rdata) {
-        KList<BlockData> list = this.data.aquire(() ->
-        {
+        KList<BlockData> list = this.data.aquire(() -> {
             KList<BlockData> b = new KList<>();
 
             for (IrisBlockData i : getBlocks()) {

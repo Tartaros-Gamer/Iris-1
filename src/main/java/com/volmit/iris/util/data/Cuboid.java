@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,20 +20,12 @@ package com.volmit.iris.util.data;
 
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.Direction;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Entity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Cuboids
@@ -389,7 +381,8 @@ public class Cuboid implements Iterable<Block>, Cloneable, ConfigurationSerializ
      */
     public Cuboid outset(CuboidDirection dir, int amount) {
         Cuboid c = switch (dir) {
-            case Horizontal -> expand(CuboidDirection.North, amount).expand(CuboidDirection.South, amount).expand(CuboidDirection.East, amount).expand(CuboidDirection.West, amount);
+            case Horizontal ->
+                    expand(CuboidDirection.North, amount).expand(CuboidDirection.South, amount).expand(CuboidDirection.East, amount).expand(CuboidDirection.West, amount);
             case Vertical -> expand(CuboidDirection.Down, amount).expand(CuboidDirection.Up, amount);
             case Both -> outset(CuboidDirection.Horizontal, amount).outset(CuboidDirection.Vertical, amount);
             default -> throw new IllegalArgumentException("invalid direction " + dir);

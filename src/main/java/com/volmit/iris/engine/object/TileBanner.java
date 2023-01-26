@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ public class TileBanner implements TileData<Banner> {
 
     @SuppressWarnings("deprecation")
     @Override
-    public void toNBT(CompoundTag tag) {
+    public CompoundTag toNBT(CompoundTag tag) {
         @SuppressWarnings("unchecked") ListTag<CompoundTag> listTag = (ListTag<CompoundTag>) ListTag.createUnchecked(CompoundTag.class);
         for (Pattern p : patterns) {
             CompoundTag pattern = new CompoundTag();
@@ -107,11 +107,13 @@ public class TileBanner implements TileData<Banner> {
             listTag.add(pattern);
         }
         tag.put("Patterns", listTag);
+        return tag;
     }
 
     public boolean isBanner(Material material) {
         return switch (material) {
-            case RED_BANNER, RED_WALL_BANNER, ORANGE_BANNER, ORANGE_WALL_BANNER, YELLOW_BANNER, YELLOW_WALL_BANNER, LIME_BANNER, LIME_WALL_BANNER, GREEN_BANNER, GREEN_WALL_BANNER, CYAN_BANNER, CYAN_WALL_BANNER, LIGHT_BLUE_BANNER, LIGHT_BLUE_WALL_BANNER, BLUE_BANNER, BLUE_WALL_BANNER, PURPLE_BANNER, PURPLE_WALL_BANNER, MAGENTA_BANNER, MAGENTA_WALL_BANNER, PINK_BANNER, PINK_WALL_BANNER, WHITE_BANNER, WHITE_WALL_BANNER, LIGHT_GRAY_BANNER, LIGHT_GRAY_WALL_BANNER, GRAY_BANNER, GRAY_WALL_BANNER, BLACK_BANNER, BLACK_WALL_BANNER, BROWN_BANNER, BROWN_WALL_BANNER -> true;
+            case RED_BANNER, RED_WALL_BANNER, ORANGE_BANNER, ORANGE_WALL_BANNER, YELLOW_BANNER, YELLOW_WALL_BANNER, LIME_BANNER, LIME_WALL_BANNER, GREEN_BANNER, GREEN_WALL_BANNER, CYAN_BANNER, CYAN_WALL_BANNER, LIGHT_BLUE_BANNER, LIGHT_BLUE_WALL_BANNER, BLUE_BANNER, BLUE_WALL_BANNER, PURPLE_BANNER, PURPLE_WALL_BANNER, MAGENTA_BANNER, MAGENTA_WALL_BANNER, PINK_BANNER, PINK_WALL_BANNER, WHITE_BANNER, WHITE_WALL_BANNER, LIGHT_GRAY_BANNER, LIGHT_GRAY_WALL_BANNER, GRAY_BANNER, GRAY_WALL_BANNER, BLACK_BANNER, BLACK_WALL_BANNER, BROWN_BANNER, BROWN_WALL_BANNER ->
+                    true;
             default -> false;
         };
     }

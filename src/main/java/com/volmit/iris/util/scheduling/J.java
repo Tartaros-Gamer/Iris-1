@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import com.volmit.iris.util.function.NastySupplier;
 import com.volmit.iris.util.math.FinalInteger;
 import com.volmit.iris.util.parallel.MultiBurst;
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.IllegalPluginAccessException;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;

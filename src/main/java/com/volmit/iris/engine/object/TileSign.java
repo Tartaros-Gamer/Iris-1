@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,11 +98,12 @@ public class TileSign implements TileData<Sign> {
     }
 
     @Override
-    public void toNBT(CompoundTag tag) {
+    public CompoundTag toNBT(CompoundTag tag) {
         tag.putString("Text1", line1);
         tag.putString("Text2", line2);
         tag.putString("Text3", line3);
         tag.putString("Text4", line4);
         tag.putString("Color", dyeColor.name().toLowerCase());
+        return tag;
     }
 }

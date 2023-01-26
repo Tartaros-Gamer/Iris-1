@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,7 @@
 package com.volmit.iris.util.noise;
 
 import com.volmit.iris.core.loader.IrisData;
-import com.volmit.iris.engine.object.IrisExpression;
 import com.volmit.iris.engine.object.IrisImageMap;
-import com.volmit.iris.util.math.RNG;
 
 public class ImageNoise implements NoiseGenerator {
     private final IrisImageMap expression;
@@ -39,7 +37,7 @@ public class ImageNoise implements NoiseGenerator {
 
     @Override
     public double noise(double x, double z) {
-        return expression.getNoise(data, (int) x, (int)z);
+        return expression.getNoise(data, (int) x, (int) z);
     }
 
     @Override

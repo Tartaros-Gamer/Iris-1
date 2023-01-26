@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.engine.object.TileData;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
@@ -38,10 +39,7 @@ import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.mantle.MantleChunk;
 import com.volmit.iris.util.mantle.MantleFlag;
-import com.volmit.iris.util.matter.Matter;
-import com.volmit.iris.util.matter.MatterCavern;
-import com.volmit.iris.util.matter.MatterFluidBody;
-import com.volmit.iris.util.matter.MatterMarker;
+import com.volmit.iris.util.matter.*;
 import com.volmit.iris.util.matter.slices.UpdateMatter;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
@@ -109,17 +107,14 @@ public interface EngineMantle extends IObjectPlacer {
 
     @Override
     default void setTile(int x, int y, int z, TileData<? extends TileState> d) {
-        // TODO SET TILE
+        getMantle().set(x, y, z, new TileWrapper(d));
     }
 
     @Override
     default BlockData get(int x, int y, int z) {
         BlockData block = getMantle().get(x, y, z, BlockData.class);
-
-        if (block == null) {
+        if (block == null)
             return AIR;
-        }
-
         return block;
     }
 
@@ -194,36 +189,38 @@ public interface EngineMantle extends IObjectPlacer {
 
 
     @ChunkCoordinates
-    default void generateMatter(int x, int z, boolean multicore) {
-        if (!getEngine().getDimension().isUseMantle()) {
-            return;
-        }
-
-        int s = getRealRadius();
-        BurstExecutor burst = burst().burst(multicore);
-        MantleWriter writer = getMantle().write(this, x, z, s * 2);
-        for (int i = -s; i <= s; i++) {
-            for (int j = -s; j <= s; j++) {
-                int xx = i + x;
-                int zz = j + z;
-                burst.queue(() -> {
-                    IrisContext.touch(getEngine().getContext());
-                    getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
-                        MantleChunk mc = getMantle().getChunk(xx, zz);
-
-                        for (MantleComponent k : getComponents()) {
-                            generateMantleComponent(writer, xx, zz, k, mc);
-                        }
-                    });
-                });
+    default void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
+        synchronized (this) {
+            if (!getEngine().getDimension().isUseMantle()) {
+                return;
             }
-        }
 
-        burst.complete();
+            int s = getRealRadius();
+            BurstExecutor burst = burst().burst(multicore);
+            MantleWriter writer = getMantle().write(this, x, z, s * 2);
+            for (int i = -s; i <= s; i++) {
+                for (int j = -s; j <= s; j++) {
+                    int xx = i + x;
+                    int zz = j + z;
+                    burst.queue(() -> {
+                        IrisContext.touch(getEngine().getContext());
+                        getMantle().raiseFlag(xx, zz, MantleFlag.PLANNED, () -> {
+                            MantleChunk mc = getMantle().getChunk(xx, zz);
+
+                            for (MantleComponent k : getComponents()) {
+                                generateMantleComponent(writer, xx, zz, k, mc, context);
+                            }
+                        });
+                    });
+                }
+            }
+
+            burst.complete();
+        }
     }
 
-    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc) {
-        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z));
+    default void generateMantleComponent(MantleWriter writer, int x, int z, MantleComponent c, MantleChunk mc, ChunkContext context) {
+        mc.raiseFlag(c.getFlag(), () -> c.generateLayer(writer, x, z, context));
     }
 
     @ChunkCoordinates

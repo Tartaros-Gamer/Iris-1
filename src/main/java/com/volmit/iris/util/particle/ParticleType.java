@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -183,7 +183,7 @@ public enum ParticleType {
         return switch (this) {
             case ITEM_CRACK -> ItemStack.class;
             case BLOCK_CRACK, BLOCK_DUST, FALLING_DUST ->
-                    //noinspection deprecation
+                //noinspection deprecation
                     MaterialData.class;
             case REDSTONE -> Color.class;
             default -> Void.class;

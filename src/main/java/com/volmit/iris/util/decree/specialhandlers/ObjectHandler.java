@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,8 @@ public class ObjectHandler implements DecreeParameterHandler<String> {
 
         if (options.isEmpty()) {
             throw new DecreeParsingException("Unable to find Object \"" + in + "\"");
-        } try {
+        }
+        try {
             return options.stream().filter((i) -> toString(i).equalsIgnoreCase(in)).collect(Collectors.toList()).get(0);
         } catch (Throwable e) {
             throw new DecreeParsingException("Unable to filter which Biome \"" + in + "\"");

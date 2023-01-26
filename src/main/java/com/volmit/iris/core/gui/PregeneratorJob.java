@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,12 +35,8 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
@@ -66,12 +62,12 @@ public class PregeneratorJob implements PregenListener {
     private final IrisPregenerator pregenerator;
     private final Position2 min;
     private final Position2 max;
+    private final ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
+    private final Engine engine;
     private JFrame frame;
     private PregenRenderer renderer;
     private int rgc = 0;
-    private final ChronoLatch cl = new ChronoLatch(TimeUnit.MINUTES.toMillis(1));
     private String[] info;
-    private final Engine engine;
 
     public PregeneratorJob(PregenTask task, PregeneratorMethod method, Engine engine) {
         this.engine = engine;
@@ -83,7 +79,6 @@ public class PregeneratorJob implements PregenListener {
         this.pregenerator = new IrisPregenerator(task, method, this);
         max = new Position2(0, 0);
         min = new Position2(0, 0);
-        KList<Runnable> draw = new KList<>();
         task.iterateRegions((xx, zz) -> {
             min.setX(Math.min(xx << 5, min.getX()));
             min.setZ(Math.min(zz << 5, min.getZ()));
@@ -96,10 +91,6 @@ public class PregeneratorJob implements PregenListener {
         }
 
         J.a(this.pregenerator::start, 20);
-    }
-
-    public Mantle getMantle() {
-        return pregenerator.getMantle();
     }
 
     public static boolean shutdownInstance() {
@@ -148,6 +139,10 @@ public class PregeneratorJob implements PregenListener {
         return Color.RED;
     }
 
+    public Mantle getMantle() {
+        return pregenerator.getMantle();
+    }
+
     public PregeneratorJob onProgress(Consumer<Double> c) {
         onProgress.add(c);
         return this;
@@ -159,12 +154,10 @@ public class PregeneratorJob implements PregenListener {
     }
 
     public void drawRegion(int x, int z, Color color) {
-        J.a(() -> {
-            PregenTask.iterateRegion(x, z, (xx, zz) -> {
-                draw(xx, zz, color);
-                J.sleep(3);
-            });
-        });
+        J.a(() -> PregenTask.iterateRegion(x, z, (xx, zz) -> {
+            draw(xx, zz, color);
+            J.sleep(3);
+        }));
     }
 
     public void draw(int x, int z, Color color) {
@@ -173,7 +166,7 @@ public class PregeneratorJob implements PregenListener {
                 renderer.func.accept(new Position2(x, z), color);
             }
         } catch (Throwable ignored) {
-
+            Iris.error("Failed to draw pregen");
         }
     }
 
@@ -191,8 +184,8 @@ public class PregeneratorJob implements PregenListener {
                 monitor.close();
                 J.sleep(3000);
                 frame.setVisible(false);
-            } catch (Throwable e) {
-
+            } catch (Throwable ignored) {
+                Iris.error("Error closing pregen gui");
             }
         });
     }
@@ -206,8 +199,7 @@ public class PregeneratorJob implements PregenListener {
                 renderer.l = new ReentrantLock();
                 renderer.frame = frame;
                 renderer.job = this;
-                renderer.func = (c, b) ->
-                {
+                renderer.func = (c, b) -> {
                     renderer.l.lock();
                     renderer.order.add(() -> renderer.draw(c, b, renderer.bg));
                     renderer.l.unlock();
@@ -215,8 +207,8 @@ public class PregeneratorJob implements PregenListener {
                 frame.add(renderer);
                 frame.setSize(1000, 1000);
                 frame.setVisible(true);
-            } catch (Throwable e) {
-
+            } catch (Throwable ignored) {
+                Iris.error("Error opening pregen gui");
             }
         });
     }
@@ -239,10 +231,6 @@ public class PregeneratorJob implements PregenListener {
 
     @Override
     public void onChunkGenerating(int x, int z) {
-        if (engine != null) {
-            return;
-        }
-
         draw(x, z, COLOR_GENERATING);
     }
 

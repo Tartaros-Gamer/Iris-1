@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,16 +21,7 @@ package com.volmit.iris.engine.jigsaw;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IObjectPlacer;
-import com.volmit.iris.engine.object.InventorySlotType;
-import com.volmit.iris.engine.object.IrisJigsawPiece;
-import com.volmit.iris.engine.object.IrisJigsawPieceConnector;
-import com.volmit.iris.engine.object.IrisLootTable;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectRotation;
-import com.volmit.iris.engine.object.IrisObjectTranslate;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.TileData;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.platform.PlatformChunkGenerator;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.context.IrisContext;

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,9 +71,8 @@ public interface PregeneratorMethod {
     /**
      * Called to generate a chunk. You can go async so long as save will wait on the threads to finish
      *
-     * @param x        the x
-     * @param z        the z
-     * @param listener
+     * @param x the x
+     * @param z the z
      */
     void generateChunk(int x, int z, PregenListener listener);
 

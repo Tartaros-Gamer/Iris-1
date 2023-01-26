@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,9 +29,14 @@ import org.bukkit.generator.ChunkGenerator.BiomeGrid;
 public class BiomeGridHunkView implements Hunk<Biome> {
     @Getter
     private final BiomeGrid chunk;
+    private final int minHeight;
+    private final int maxHeight;
+    private int highest = -1000;
 
-    public BiomeGridHunkView(BiomeGrid chunk) {
+    public BiomeGridHunkView(BiomeGrid chunk, int minHeight, int maxHeight) {
         this.chunk = chunk;
+        this.minHeight = minHeight;
+        this.maxHeight = maxHeight;
     }
 
     @Override
@@ -46,25 +51,28 @@ public class BiomeGridHunkView implements Hunk<Biome> {
 
     @Override
     public int getHeight() {
-        // TODO: WARNING HEIGHT
-        return 256;
+        return maxHeight - minHeight;
     }
 
     @Override
     public void setRaw(int x, int y, int z, Biome t) {
-        chunk.setBiome(x, y, z, t);
+        chunk.setBiome(x, y + minHeight, z, t);
+
+        if (y > highest) {
+            highest = y;
+        }
     }
 
     @Override
     public Biome getRaw(int x, int y, int z) {
-        return chunk.getBiome(x, y, z);
+        return chunk.getBiome(x, y + minHeight, z);
     }
 
     public void forceBiomeBaseInto(int x, int y, int z, Object somethingVeryDirty) {
         if (chunk instanceof LinkedTerrainChunk) {
-            INMS.get().forceBiomeInto(x, y, z, somethingVeryDirty, ((LinkedTerrainChunk) chunk).getRawBiome());
+            INMS.get().forceBiomeInto(x, y + minHeight, z, somethingVeryDirty, ((LinkedTerrainChunk) chunk).getRawBiome());
             return;
         }
-        INMS.get().forceBiomeInto(x, y, z, somethingVeryDirty, chunk);
+        INMS.get().forceBiomeInto(x, y + minHeight, z, somethingVeryDirty, chunk);
     }
 }

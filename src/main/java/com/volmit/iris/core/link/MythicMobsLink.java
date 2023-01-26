@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ public class MythicMobsLink {
         }
 
         try {
-            Class<?> mythicMobClass = Class.forName("io.lumine.xikage.mythicmobs.MythicMobs");
+            Class<?> mythicMobClass = Class.forName("io.lumine.mythic.bukkit.MythicBukkit");
             Method getInst = mythicMobClass.getDeclaredMethod("inst");
             Object inst = getInst.invoke(null);
             Method getAPIHelper = mythicMobClass.getDeclaredMethod("getAPIHelper");
@@ -103,7 +103,8 @@ public class MythicMobsLink {
                 Method getMobNames = mobManager.getClass().getDeclaredMethod("getMobNames");
                 mobs = (Collection<String>) getMobNames.invoke(mobManager);
                 return mobs;
-            } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
+                     IllegalAccessException e) {
                 e.printStackTrace();
             }
         }

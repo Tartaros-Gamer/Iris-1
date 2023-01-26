@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.format.C;
-import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
@@ -38,6 +37,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class ServerConfigurator {
@@ -55,7 +55,7 @@ public class ServerConfigurator {
     }
 
     private static void increaseKeepAliveSpigot() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("spigot.yml");
+        File spigotConfig = new File("config/spigot.yml");
         FileConfiguration f = new YamlConfiguration();
         f.load(spigotConfig);
         long tt = f.getLong("settings.timeout-time");
@@ -69,54 +69,32 @@ public class ServerConfigurator {
     }
 
     private static void increasePaperWatchdog() throws IOException, InvalidConfigurationException {
-        File spigotConfig = new File("paper.yml");
+        File spigotConfig = new File("config/paper-global.yml");
         FileConfiguration f = new YamlConfiguration();
         f.load(spigotConfig);
-        long tt = f.getLong("settings.watchdog.early-warning-delay");
+        long tt = f.getLong("watchdog.early-warning-delay");
 
         if (tt < TimeUnit.MINUTES.toMillis(3)) {
             Iris.warn("Updating paper.yml watchdog early-warning-delay: " + tt + " -> " + TimeUnit.MINUTES.toMillis(3) + " (3 minutes)");
             Iris.warn("You can disable this change (autoconfigureServer) in Iris settings, then change back the value.");
-            f.set("settings.watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
+            f.set("watchdog.early-warning-delay", TimeUnit.MINUTES.toMillis(3));
             f.save(spigotConfig);
         }
     }
 
-    private static File getDatapacksFolder() {
+    private static List<File> getDatapacksFolder() {
         if (!IrisSettings.get().getGeneral().forceMainWorld.isEmpty()) {
-            return new File(IrisSettings.get().getGeneral().forceMainWorld + "/datapacks");
+            return new KList<File>().qadd(new File(Bukkit.getWorldContainer(), IrisSettings.get().getGeneral().forceMainWorld + "/datapacks"));
         }
-
-        File props = new File("server.properties");
-
-        if (props.exists()) {
-            try {
-                KList<String> m = new KList<>(IO.readAll(props).split("\\Q\n\\E"));
-
-                for (String i : m) {
-                    if (i.trim().startsWith("level-name=")) {
-                        return new File(i.trim().split("\\Q=\\E")[1] + "/datapacks");
-                    }
-                }
-            } catch (IOException e) {
-                Iris.reportError(e);
-                e.printStackTrace();
-            }
-        }
-
-        return null;
+        KList<File> worlds = new KList<>();
+        Bukkit.getServer().getWorlds().forEach(w -> worlds.add(new File(w.getWorldFolder(), "datapacks")));
+        return worlds;
     }
+
 
     public static void installDataPacks(boolean fullInstall) {
         Iris.info("Checking Data Packs...");
-        boolean reboot = false;
         File packs = new File("plugins/Iris/packs");
-        File dpacks = getDatapacksFolder();
-
-        if (dpacks == null) {
-            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
-            return;
-        }
 
         if (packs.exists()) {
             for (File i : packs.listFiles()) {
@@ -135,8 +113,8 @@ public class ServerConfigurator {
                                 }
 
                                 Iris.verbose("  Checking Dimension " + dim.getLoadFile().getPath());
-                                if (dim.installDataPack(() -> data, dpacks)) {
-                                    reboot = true;
+                                for (File dpack : getDatapacksFolder()) {
+                                    dim.installDataPack(() -> data, dpack);
                                 }
                             }
                         }
@@ -147,19 +125,12 @@ public class ServerConfigurator {
 
         Iris.info("Data Packs Setup!");
 
-        if (fullInstall) {
+        if (fullInstall)
             verifyDataPacksPost(IrisSettings.get().getAutoConfiguration().isAutoRestartOnCustomBiomeInstall());
-        }
     }
 
     private static void verifyDataPacksPost(boolean allowRestarting) {
         File packs = new File("plugins/Iris/packs");
-        File dpacks = getDatapacksFolder();
-
-        if (dpacks == null) {
-            Iris.error("Cannot find the datapacks folder! Please try generating a default world first maybe? Is this a new server?");
-            return;
-        }
 
         boolean bad = false;
         if (packs.exists()) {

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,7 @@
 
 package com.volmit.iris.util.hunk.bits;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.util.function.Consumer2;
-import org.bukkit.block.data.BlockData;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -67,8 +65,7 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public int id(T t) {
-        if(t == null)
-        {
+        if (t == null) {
             return 0;
         }
 
@@ -83,12 +80,12 @@ public class LinearPalette<T> implements Palette<T> {
 
     @Override
     public int size() {
-        return size.get()-1;
+        return size.get() - 1;
     }
 
     @Override
     public void iterate(Consumer2<T, Integer> c) {
-        for (int i = 1; i < size()+1; i++) {
+        for (int i = 1; i < size() + 1; i++) {
             c.accept(palette.get().get(i), i);
         }
     }

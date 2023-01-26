@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@ package com.volmit.iris.util.decree.virtual;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.service.CommandSVC;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -28,7 +27,6 @@ import com.volmit.iris.util.decree.DecreeContext;
 import com.volmit.iris.util.decree.DecreeContextHandler;
 import com.volmit.iris.util.decree.DecreeNode;
 import com.volmit.iris.util.decree.DecreeParameter;
-import com.volmit.iris.util.decree.DecreeParameterHandler;
 import com.volmit.iris.util.decree.annotations.Decree;
 import com.volmit.iris.util.decree.exceptions.DecreeParsingException;
 import com.volmit.iris.util.format.C;
@@ -38,17 +36,11 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import lombok.Data;
-import org.bukkit.Sound;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Data
@@ -289,8 +281,9 @@ public class VirtualDecreeCommand {
 
     /**
      * Maps the input a player typed to the parameters of this command
+     *
      * @param sender The sender
-     * @param in The input
+     * @param in     The input
      * @return A map of all the parameter names and their values
      */
     private KMap<String, Object> map(VolmitSender sender, KList<String> in) {

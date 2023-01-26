@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,54 +20,28 @@ package com.volmit.iris.util.stream;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
+import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.object.IRare;
 import com.volmit.iris.engine.object.IrisStyledRange;
 import com.volmit.iris.util.collection.KList;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.function.Function2;
 import com.volmit.iris.util.function.Function3;
 import com.volmit.iris.util.function.Function4;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.reflect.V;
-import com.volmit.iris.util.stream.arithmetic.AddingStream;
-import com.volmit.iris.util.stream.arithmetic.ClampedStream;
-import com.volmit.iris.util.stream.arithmetic.CoordinateBitShiftLeftStream;
-import com.volmit.iris.util.stream.arithmetic.CoordinateBitShiftRightStream;
-import com.volmit.iris.util.stream.arithmetic.DividingStream;
-import com.volmit.iris.util.stream.arithmetic.FittedStream;
-import com.volmit.iris.util.stream.arithmetic.MaxingStream;
-import com.volmit.iris.util.stream.arithmetic.MinningStream;
-import com.volmit.iris.util.stream.arithmetic.ModuloStream;
-import com.volmit.iris.util.stream.arithmetic.MultiplyingStream;
-import com.volmit.iris.util.stream.arithmetic.OffsetStream;
-import com.volmit.iris.util.stream.arithmetic.RadialStream;
-import com.volmit.iris.util.stream.arithmetic.RoundingDoubleStream;
-import com.volmit.iris.util.stream.arithmetic.SlopeStream;
-import com.volmit.iris.util.stream.arithmetic.SubtractingStream;
-import com.volmit.iris.util.stream.arithmetic.ZoomStream;
-import com.volmit.iris.util.stream.convert.AwareConversionStream2D;
-import com.volmit.iris.util.stream.convert.AwareConversionStream3D;
-import com.volmit.iris.util.stream.convert.CachedConversionStream;
-import com.volmit.iris.util.stream.convert.ConversionStream;
-import com.volmit.iris.util.stream.convert.ForceDoubleStream;
-import com.volmit.iris.util.stream.convert.RoundingStream;
-import com.volmit.iris.util.stream.convert.SelectionStream;
-import com.volmit.iris.util.stream.convert.SignificanceStream;
-import com.volmit.iris.util.stream.convert.To3DStream;
+import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.parallel.MultiBurst;
+import com.volmit.iris.util.stream.arithmetic.*;
+import com.volmit.iris.util.stream.convert.*;
 import com.volmit.iris.util.stream.interpolation.Interpolated;
 import com.volmit.iris.util.stream.sources.FunctionStream;
-import com.volmit.iris.util.stream.utility.CachedStream2D;
-import com.volmit.iris.util.stream.utility.CachedStream3D;
-import com.volmit.iris.util.stream.utility.NullSafeStream;
-import com.volmit.iris.util.stream.utility.ProfiledStream;
-import com.volmit.iris.util.stream.utility.SemaphoreStream;
-import com.volmit.iris.util.stream.utility.SynchronizedStream;
+import com.volmit.iris.util.stream.utility.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("ALL")
 public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
@@ -112,7 +86,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     }
 
     default ProceduralStream<T> profile() {
-        return profile(10);
+        return profile(256);
     }
 
     default ProceduralStream<T> profile(int memory) {
@@ -131,8 +105,18 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new AddingStream<>(this, a);
     }
 
+    default ProceduralStream<T> contextInjecting(Function3<ChunkContext, Integer, Integer, T> contextAccessor) {
+        //return this;
+        return new ContextInjectingStream<>(this, contextAccessor);
+    }
+
     default ProceduralStream<T> add(ProceduralStream<Double> a) {
         return add2D((x, z) -> a.get(x, z));
+    }
+
+    default ProceduralStream<T> waste(String name) {
+        return this;
+        //return new WasteDetector<T>(this, name);
     }
 
     default ProceduralStream<T> subtract(ProceduralStream<Double> a) {
@@ -291,7 +275,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
         return new To3DStream<T>(this);
     }
 
-    default ProceduralStream<T> cache2D(String name, Engine engine, int size) {
+    default CachedStream2D<T> cache2D(String name, Engine engine, int size) {
         return new CachedStream2D<T>(name, engine, this, size);
     }
 
@@ -372,7 +356,7 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
 
     default <V> ProceduralStream<IRare> selectRarity(List<V> types, Function<V, IRare> loader) {
         List<IRare> r = new ArrayList<>();
-        for(V f : types) {
+        for (V f : types) {
             r.add(loader.apply(f));
         }
         return selectRarity(r);
@@ -405,6 +389,48 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
             double d = getDouble(x, z);
             return range.get(rng, d, -d, data);
         }, Interpolated.DOUBLE);
+    }
+
+    default Hunk<T> fastFill2DParallel(int x, int z) {
+        Hunk<T> hunk = Hunk.newAtomicHunk(16, 16, 1);
+        BurstExecutor e = MultiBurst.burst.burst(256);
+        int i, j;
+
+        for (i = 0; i < 16; i++) {
+            for (j = 0; j < 16; j++) {
+                int fi = i;
+                int fj = j;
+                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x + fi, z + fj)));
+            }
+        }
+
+        e.complete();
+        return hunk;
+    }
+
+    default void fastFill2DParallel(Hunk<T> hunk, BurstExecutor e, int x, int z) {
+        int i, j;
+
+        for (i = 0; i < 16; i++) {
+            for (j = 0; j < 16; j++) {
+                int fi = i;
+                int fj = j;
+                e.queue(() -> hunk.setRaw(fi, fj, 0, get(x + fi, z + fj)));
+            }
+        }
+    }
+
+    default Hunk<T> fastFill2D(int x, int z) {
+        Hunk<T> hunk = Hunk.newArrayHunk(16, 16, 1);
+        int i, j;
+
+        for (i = 0; i < 16; i++) {
+            for (j = 0; j < 16; j++) {
+                hunk.setRaw(i, j, 0, get(x + i, z + j));
+            }
+        }
+
+        return hunk;
     }
 
     default ProceduralStream<T> fit(double inMin, double inMax, double min, double max) {
@@ -532,6 +558,21 @@ public interface ProceduralStream<T> extends ProceduralLayer, Interpolated<T> {
     ProceduralStream<T> getTypedSource();
 
     ProceduralStream<?> getSource();
+
+    default void fillChunk(int x, int z, T[] c) {
+        if (c.length != 256) {
+            throw new RuntimeException("Not 256 Length for chunk get");
+        }
+
+        int xs = x << 4;
+        int zs = z << 4;
+
+        for (int i = 0; i < 16; i++) {
+            for (int j = 0; j < 16; j++) {
+                c[Cache.to1D(i + xs, j + zs, 0, 16, 16)] = get(i + xs, j + zs);
+            }
+        }
+    }
 
     T get(double x, double z);
 

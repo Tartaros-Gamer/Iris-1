@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@ public class Section {
     private MCAPaletteAccess palette;
     private byte[] blockLight;
     private byte[] skyLight;
-    private int dataVersion;
 
     public Section(CompoundTag sectionRoot, int dataVersion) {
         this(sectionRoot, dataVersion, LoadFlags.ALL_DATA);
@@ -38,7 +37,6 @@ public class Section {
 
     public Section(CompoundTag sectionRoot, int dataVersion, long loadFlags) {
         data = sectionRoot;
-        this.dataVersion = dataVersion;
         ListTag<?> rawPalette = sectionRoot.getListTag("Palette");
         if (rawPalette == null) {
             return;

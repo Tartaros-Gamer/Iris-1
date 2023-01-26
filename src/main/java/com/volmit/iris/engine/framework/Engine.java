@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,24 +28,11 @@ import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.object.InventorySlotType;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisColor;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEngineData;
-import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisJigsawStructurePlacement;
-import com.volmit.iris.engine.object.IrisLootMode;
-import com.volmit.iris.engine.object.IrisLootReference;
-import com.volmit.iris.engine.object.IrisLootTable;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisPosition;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisWorld;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.data.DataProvider;
@@ -61,6 +48,7 @@ import com.volmit.iris.util.math.Position2;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterCavern;
 import com.volmit.iris.util.matter.MatterUpdate;
+import com.volmit.iris.util.matter.TileWrapper;
 import com.volmit.iris.util.parallel.BurstExecutor;
 import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.scheduling.ChronoLatch;
@@ -68,6 +56,7 @@ import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.stream.ProceduralStream;
 import io.papermc.lib.PaperLib;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -78,12 +67,12 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import oshi.util.tuples.Pair;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
@@ -137,6 +126,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     EngineTarget getTarget();
 
+    default int getMaxHeight() {
+        return getTarget().getWorld().maxHeight();
+    }
+
     default int getMinHeight() {
         return getTarget().getWorld().minHeight();
     }
@@ -145,7 +138,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     default void generate(int x, int z, TerrainChunk tc, boolean multicore) throws WrongEngineBroException {
-        generate(x, z, Hunk.view((ChunkGenerator.ChunkData) tc), Hunk.view((ChunkGenerator.BiomeGrid) tc), multicore);
+        generate(x, z, Hunk.view(tc), Hunk.view(tc, tc.getMinHeight(), tc.getMaxHeight()), multicore);
     }
 
     @BlockCoordinates
@@ -204,7 +197,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         return getComplex().getRegionStream().get(x, z);
     }
 
-    void generateMatter(int x, int z, boolean multicore);
+    void generateMatter(int x, int z, boolean multicore, ChunkContext context);
 
     @BlockCoordinates
     default IrisBiome getCaveOrMantleBiome(int x, int y, int z) {
@@ -223,6 +216,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @ChunkCoordinates
     Set<String> getObjectsAt(int x, int z);
+
+    @ChunkCoordinates
+    Set<Pair<String, BlockPos>> getPOIsAt(int x, int z);
 
     @ChunkCoordinates
     IrisJigsawStructure getStructureAt(int x, int z);
@@ -259,11 +255,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
     }
 
-    @ChunkCoordinates
-    default void placeTiles(Chunk c) {
-
-    }
-
     void blockUpdatedMetric();
 
     @ChunkCoordinates
@@ -277,11 +268,21 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ())
                 && c.getWorld().isChunkLoaded(c.getX() + 1, c.getZ() - 1)
                 && c.getWorld().isChunkLoaded(c.getX() - 1, c.getZ() + 1) && getMantle().getMantle().isLoaded(c)) {
+
+            getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.TILE, () -> J.s(() -> {
+                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), TileWrapper.class, (x, y, z, tile) -> {
+                    int betterY = y + getWorld().minHeight();
+                    if (!TileData.setTileState(c.getBlock(x, betterY, z), tile.getData()))
+                        Iris.warn("Failed to set tile entity data at [%d %d %d | %s] for tile %s!", x, betterY, z, c.getBlock(x, betterY, z).getBlockData().getMaterial().getKey(), tile.getData().getTileId());
+                });
+            }));
+
             getMantle().getMantle().raiseFlag(c.getX(), c.getZ(), MantleFlag.UPDATE, () -> J.s(() -> {
                 PrecisionStopwatch p = PrecisionStopwatch.start();
                 KMap<Long, Integer> updates = new KMap<>();
                 RNG r = new RNG(Cache.key(c.getX(), c.getZ()));
-                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, v) -> {
+                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, yf, z, v) -> {
+                    int y = yf + getWorld().minHeight();
                     if (!B.isFluid(c.getBlock(x & 15, y, z & 15).getBlockData())) {
                         return;
                     }
@@ -310,7 +311,8 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
                 });
 
                 updates.forEach((k, v) -> update(Cache.keyX(k), v, Cache.keyZ(k), c, r));
-                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, y, z, v) -> {
+                getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterUpdate.class, (x, yf, z, v) -> {
+                    int y = yf + getWorld().minHeight();
                     if (v != null && v.isUpdate()) {
                         int vx = x & 15;
                         int vz = z & 15;
@@ -425,21 +427,27 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     default KList<IrisLootTable> getLootTables(RNG rng, Block b) {
         int rx = b.getX();
         int rz = b.getZ();
+        int ry = b.getY() - getWorld().minHeight();
         double he = getComplex().getHeightStream().get(rx, rz);
-        PlacedObject po = getObjectPlacement(rx, b.getY(), rz);
-        if (po != null && po.getPlacement() != null) {
+        KList<IrisLootTable> tables = new KList<>();
 
+        PlacedObject po = getObjectPlacement(rx, ry, rz);
+        if (po != null && po.getPlacement() != null) {
             if (B.isStorageChest(b.getBlockData())) {
                 IrisLootTable table = po.getPlacement().getTable(b.getBlockData(), getData());
                 if (table != null) {
-                    return new KList<>(table);
+                    tables.add(table);
+                    if (po.getPlacement().isOverrideGlobalLoot()) {
+                        return new KList<>(table);
+                    }
                 }
             }
         }
+
         IrisRegion region = getComplex().getRegionStream().get(rx, rz);
         IrisBiome biomeSurface = getComplex().getTrueBiomeStream().get(rx, rz);
-        IrisBiome biomeUnder = b.getY() < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
-        KList<IrisLootTable> tables = new KList<>();
+        IrisBiome biomeUnder = ry < he ? getComplex().getCaveBiomeStream().get(rx, rz) : biomeSurface;
+
         double multiplier = 1D * getDimension().getLoot().getMultiplier() * region.getLoot().getMultiplier() * biomeSurface.getLoot().getMultiplier() * biomeUnder.getLoot().getMultiplier();
         injectTables(tables, getDimension().getLoot());
         injectTables(tables, region.getLoot());
@@ -467,8 +475,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         int b = 4;
         for (IrisLootTable i : tables) {
+            if (i == null)
+                continue;
             b++;
-            items.addAll(i.getLoot(debug, items.isEmpty(), rng, slot, x, y, z, b + b, mgf + b));
+            items.addAll(i.getLoot(debug, rng, slot, x, y, z));
         }
 
         if (PaperLib.isPaper() && getWorld().hasRealWorld()) {
@@ -508,7 +518,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     @BlockCoordinates
     default IrisBiome getBiome(Location l) {
-        return getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ());
+        return getBiome(l.getBlockX(), l.getBlockY() - getWorld().minHeight(), l.getBlockZ());
     }
 
     @BlockCoordinates
@@ -517,6 +527,9 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
     }
 
     IrisBiome getFocus();
+
+    IrisRegion getFocusRegion();
+
 
     IrisEngineData getEngineData();
 
@@ -738,7 +751,6 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
     default PlacedObject getObjectPlacement(int x, int y, int z) {
         String objectAt = getMantle().getMantle().get(x, y, z, String.class);
-
         if (objectAt == null || objectAt.isEmpty()) {
             return null;
         }
@@ -764,6 +776,7 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
 
         return new PlacedObject(null, getData().getObjectLoader().load(object), id, x, z);
     }
+
 
     int getCacheID();
 
@@ -897,6 +910,10 @@ public interface Engine extends DataProvider, Fallible, LootProvider, BlockUpdat
         }
 
         Locator.region(r.getLoadKey()).find(player);
+    }
+
+    default void gotoPOI(String type, Player p) {
+        Locator.poi(type).find(p);
     }
 
     default void cleanupMantleChunk(int x, int z) {

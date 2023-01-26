@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.DependsOn;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.noise.CNG;
@@ -53,6 +47,14 @@ public class IrisDecorator {
     private IrisGeneratorStyle variance = NoiseStyle.STATIC.style();
     @Desc("Forcefully place this decorant anywhere it is supposed to go even if it should not go on a specific surface block. For example, you could force tallgrass to place on top of stone by using this.")
     private boolean forcePlace = false;
+    @Desc("Forced the surface block of this decorant to be the specified block. Assumes forcePlace.")
+    private IrisBlockData forceBlock;
+    @ArrayType(min = 1, type = IrisBlockData.class)
+    @Desc("When set, the decorator can only place onto any of these blocks.")
+    private KList<IrisBlockData> whitelist;
+    @ArrayType(min = 1, type = IrisBlockData.class)
+    @Desc("When set, the decorator will never place onto any of these blocks.")
+    private KList<IrisBlockData> blacklist;
     @DependsOn({"scaleStack", "stackMin", "stackMax"})
     @Desc("If stackMax is set to true, use this to limit its max height for large caverns")
     private int absoluteMaxStack = 30;
@@ -65,17 +67,19 @@ public class IrisDecorator {
     private IrisDecorationPart partOf = IrisDecorationPart.NONE;
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The minimum repeat stack height (setting to 3 would stack 3 of <block> on top of each other")
     private int stackMin = 1;
     @DependsOn({"stackMin", "stackMax"})
     @MinNumber(1)
-    @MaxNumber(256) // TODO: WARNING HEIGHT
+    @MaxNumber(2032) // TODO: WARNING HEIGHT
     @Desc("The maximum repeat stack height")
     private int stackMax = 1;
     @DependsOn({"stackMin", "stackMax"})
-    @Desc("Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height" +
-            "\n\nWithin a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height")
+    @Desc("""
+            Changes stackMin and stackMin from being absolute block heights and instead uses them as a percentage to scale the stack based on the cave height
+
+            Within a cave, setting them stackMin/max to 50 would make the stack 50% of the cave height""")
     private boolean scaleStack = false;
     @Required
     @MinNumber(0)

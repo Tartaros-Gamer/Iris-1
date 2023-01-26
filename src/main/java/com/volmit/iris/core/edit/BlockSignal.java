@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,12 +36,11 @@ public class BlockSignal {
 
     public BlockSignal(Block block, int ticks) {
         active.incrementAndGet();
-        Location tg = block.getLocation().clone().add(0.5, 0, 0.5).clone();
-        FallingBlock e = block.getWorld().spawnFallingBlock(tg.clone(), block.getBlockData());
+        Location tg = block.getLocation().clone().add(0.5, 0, 0.5);
+        FallingBlock e = block.getWorld().spawnFallingBlock(tg, block.getBlockData());
         e.setGravity(false);
         e.setInvulnerable(true);
         e.setGlowing(true);
-        e.teleport(tg.clone());
         e.setDropItem(false);
         e.setHurtEntities(false);
         e.setSilent(true);

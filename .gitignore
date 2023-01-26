@@ -4,3 +4,9 @@ build/
 .gradle/
 
 .idea/
+
+.DS_Store
+
+collection/
+
+src/main/java/com/volmit/iris/util/uniques/

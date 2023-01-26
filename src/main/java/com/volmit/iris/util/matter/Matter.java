@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KSet;
-import com.volmit.iris.util.data.Varint;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.BlockPosition;
 import org.bukkit.World;
@@ -30,14 +29,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.BlockVector;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -60,11 +52,36 @@ import java.util.function.Function;
 public interface Matter {
     int VERSION = 1;
 
+    static long convert(File folder) {
+        if (folder.isDirectory()) {
+            long v = 0;
+
+            for (File i : folder.listFiles()) {
+                v += convert(i);
+            }
+
+            return v;
+        } else {
+            IrisObject object = new IrisObject(1, 1, 1);
+            try {
+                long fs = folder.length();
+                object.read(folder);
+                Matter.from(object).write(folder);
+                Iris.info("Converted " + folder.getPath() + " Saved " + (fs - folder.length()));
+            } catch (Throwable e) {
+                Iris.error("Failed to convert " + folder.getPath());
+                e.printStackTrace();
+            }
+        }
+
+        return 0;
+    }
+
     static Matter from(IrisObject object) {
         object.clean();
         object.shrinkwrap();
         BlockVector min = new BlockVector();
-        Matter m = new IrisMatter(object.getW(), object.getH(), object.getD());
+        Matter m = new IrisMatter(Math.max(object.getW(), 1) + 1, Math.max(object.getH(), 1) + 1, Math.max(object.getD(), 1) + 1);
 
         for (BlockVector i : object.getBlocks().keySet()) {
             min.setX(Math.min(min.getX(), i.getX()));
@@ -83,12 +100,6 @@ public interface Matter {
         FileInputStream in = new FileInputStream(f);
         Matter m = read(in);
         in.close();
-        return m;
-    }
-
-    default Matter copy() {
-        Matter m = new IrisMatter(getWidth(), getHeight(), getDepth());
-        getSliceMap().forEach((k, v) -> m.slice(k).forceInject(v));
         return m;
     }
 
@@ -125,8 +136,7 @@ public interface Matter {
         matter.getHeader().read(din);
         Iris.addPanic("read.matter.header", matter.getHeader().toString());
 
-        for(int i = 0; i < sliceCount; i++)
-        {
+        for (int i = 0; i < sliceCount; i++) {
             Iris.addPanic("read.matter.slice", i + "");
             String cn = din.readUTF();
             Iris.addPanic("read.matter.slice.class", cn);
@@ -142,6 +152,12 @@ public interface Matter {
         }
 
         return matter;
+    }
+
+    default Matter copy() {
+        Matter m = new IrisMatter(getWidth(), getHeight(), getDepth());
+        getSliceMap().forEach((k, v) -> m.slice(k).forceInject(v));
+        return m;
     }
 
     /**

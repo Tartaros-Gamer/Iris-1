@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,14 +22,10 @@ import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Arrays;
 
 public abstract class DL {
     protected File d;
@@ -65,9 +61,7 @@ public abstract class DL {
         flags = new KSet<>();
         latch = new ChronoLatch(500);
 
-        for (DownloadFlag i : downloadFlags) {
-            flags.add(i);
-        }
+        flags.addAll(Arrays.asList(downloadFlags));
     }
 
     public void monitor(DownloadMonitor m) {

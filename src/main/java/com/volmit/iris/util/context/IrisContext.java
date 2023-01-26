@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,15 +24,29 @@ import com.volmit.iris.engine.IrisComplex;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.scheduling.ChronoLatch;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class IrisContext {
     private static final KMap<Thread, IrisContext> context = new KMap<>();
     private static ChronoLatch cl = new ChronoLatch(60000);
     private final Engine engine;
+    private ChunkContext chunkContext;
+
+    public IrisContext(Engine engine) {
+        this.engine = engine;
+    }
+
+    public static IrisContext getOr(Engine engine) {
+        IrisContext c = get();
+
+        if (c == null) {
+            c = new IrisContext(engine);
+            touch(c);
+        }
+
+        return c;
+    }
 
     public static IrisContext get() {
         return context.get(Thread.currentThread());

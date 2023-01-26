@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1190,9 +1190,6 @@ public class FastNoise {
         return sum;
     }
 
-    // private final static float F2 = (float) (1.0 / 2.0);
-    // private final static float G2 = (float) (1.0 / 4.0);
-
     public float GetSimplex(float x, float y) {
         return SingleSimplex(m_seed, x * m_frequency, y * m_frequency);
     }
@@ -1729,6 +1726,7 @@ public class FastNoise {
                 return 0;
         }
     }
+
     public float GetCellular(float x, float y, ProceduralStream<Double> sourceNoise, double iscale) {
         x *= m_frequency;
         y *= m_frequency;

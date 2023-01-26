@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +18,14 @@
 
 package com.volmit.iris.util.hunk.view;
 
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator.ChunkData;
 
 @SuppressWarnings("ClassCanBeRecord")
 public class ChunkDataHunkView implements Hunk<BlockData> {
+    private static final BlockData AIR = B.getAir();
     private final ChunkData chunk;
 
     public ChunkDataHunkView(ChunkData chunk) {
@@ -42,7 +44,7 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
 
     @Override
     public int getHeight() {
-        return chunk.getMaxHeight();
+        return chunk.getMaxHeight() - chunk.getMinHeight();
     }
 
     @Override
@@ -51,7 +53,16 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
             return;
         }
 
-        chunk.setRegion(x1, y1, z1, x2, y2, z2, t);
+        chunk.setRegion(x1, y1 + chunk.getMinHeight(), z1, x2, y2 + chunk.getMinHeight(), z2, t);
+    }
+
+
+    public BlockData get(int x, int y, int z) {
+        return getRaw(x, y, z);
+    }
+
+    public void set(int x, int y, int z, BlockData t) {
+        setRaw(x, y, z, t);
     }
 
     @Override
@@ -60,11 +71,23 @@ public class ChunkDataHunkView implements Hunk<BlockData> {
             return;
         }
 
-        chunk.setBlock(x, y, z, t);
+        try {
+
+            chunk.setBlock(x, y + chunk.getMinHeight(), z, t);
+        } catch (Throwable ignored) {
+
+        }
     }
 
     @Override
     public BlockData getRaw(int x, int y, int z) {
-        return chunk.getBlockData(x, y, z);
+        try {
+
+            return chunk.getBlockData(x, y + chunk.getMinHeight(), z);
+        } catch (Throwable e) {
+
+        }
+
+        return AIR;
     }
 }

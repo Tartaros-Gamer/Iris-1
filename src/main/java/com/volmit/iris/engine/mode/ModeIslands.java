@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@ public class ModeIslands extends IrisEngineMode implements EngineMode {
         var biome = new IrisBiomeActuator(getEngine());
 
         registerStage(burst(
-                (x, z, k, p, m) -> terrain.actuate(x, z, k, m),
-                (x, z, k, p, m) -> biome.actuate(x, z, p, m)
+                (x, z, k, p, m, c) -> terrain.actuate(x, z, k, m, c),
+                (x, z, k, p, m, c) -> biome.actuate(x, z, p, m, c)
         ));
     }
 }

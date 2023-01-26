@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -964,7 +964,6 @@ public class JSONArray implements Iterable<Object> {
      * object, beginning with <code>[</code>&nbsp;<small>(left
      * bracket)</small> and ending with <code>]</code> &nbsp;
      * <small>(right bracket)</small>.
-     * @throws JSONException
      */
     public String toString(int indentFactor) throws JSONException {
         StringWriter sw = new StringWriter();
@@ -980,7 +979,6 @@ public class JSONArray implements Iterable<Object> {
      * Warning: This method assumes that the data structure is acyclical.
      *
      * @return The writer.
-     * @throws JSONException
      */
     public Writer write(Writer writer) throws JSONException {
         return this.write(writer, 0, 0);
@@ -995,7 +993,6 @@ public class JSONArray implements Iterable<Object> {
      * @param indentFactor The number of spaces to add to each level of indentation.
      * @param indent       The indention of the top level.
      * @return The writer.
-     * @throws JSONException
      */
     Writer write(Writer writer, int indentFactor, int indent) throws JSONException {
         try {

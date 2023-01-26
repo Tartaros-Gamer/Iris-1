@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,11 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListResource;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.matter.MatterMarker;
@@ -74,8 +70,8 @@ public class IrisEntitySpawn implements IRare {
             for (int id = 0; id < spawns; id++) {
                 int x = (c.getX() * 16) + rng.i(15);
                 int z = (c.getZ() * 16) + rng.i(15);
-                int h = gen.getHeight(x, z, true);
-                int hf = gen.getHeight(x, z, false);
+                int h = gen.getHeight(x, z, true) + (gen.getWorld().tryGetRealWorld() ? gen.getWorld().realWorld().getMinHeight() : -64);
+                int hf = gen.getHeight(x, z, false) + (gen.getWorld().tryGetRealWorld() ? gen.getWorld().realWorld().getMinHeight() : -64);
                 Location l = switch (getReferenceSpawner().getGroup()) {
                     case NORMAL -> new Location(c.getWorld(), x, hf + 1, z);
                     case CAVE -> gen.getMantle().findMarkers(c.getX(), c.getZ(), MarkerMatter.CAVE_FLOOR)
@@ -160,6 +156,10 @@ public class IrisEntitySpawn implements IRare {
     private Entity spawn100(Engine g, Location at, boolean ignoreSurfaces) {
         try {
             IrisEntity irisEntity = getRealEntity(g);
+            if (irisEntity == null) { // No entity
+                Iris.debug("      You are trying to spawn an entity that does not exist!");
+                return null;
+            }
 
             if (!ignoreSurfaces && !irisEntity.getSurface().matches(at.clone().subtract(0, 1, 0).getBlock())) {
                 return null;
@@ -169,6 +169,7 @@ public class IrisEntitySpawn implements IRare {
             if (e != null) {
                 Iris.debug("Spawned " + C.DARK_AQUA + "Entity<" + getEntity() + "> " + C.GREEN + e.getType() + C.LIGHT_PURPLE + " @ " + C.GRAY + e.getLocation().getX() + ", " + e.getLocation().getY() + ", " + e.getLocation().getZ());
             }
+
 
             return e;
         } catch (Throwable e) {

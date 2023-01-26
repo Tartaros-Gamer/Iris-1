@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,14 @@ import com.volmit.iris.engine.object.InferredType;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisDecorationPart;
 import com.volmit.iris.engine.object.IrisDecorator;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.type.PointedDripstone;
 
 public class IrisSurfaceDecorator extends IrisEngineDecorator {
@@ -55,7 +57,18 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 bd = decorator.getBlockData100(biome, getRng(), realX, height, realZ, getData());
 
                 if (!underwater) {
-                    if (!canGoOn(bd, bdx)) {
+                    if (!canGoOn(bd, bdx) && (!decorator.isForcePlace() && decorator.getForceBlock() == null)) {
+                        return;
+                    }
+                }
+
+                if (decorator.getForceBlock() != null) {
+                    data.set(x, height, z, fixFaces(decorator.getForceBlock().getBlockData(getData()), x, height, z));
+                } else if (!decorator.isForcePlace()) {
+                    if (decorator.getWhitelist() != null && decorator.getWhitelist().stream().noneMatch(d -> d.getBlockData(getData()).equals(bdx))) {
+                        return;
+                    }
+                    if (decorator.getBlacklist() != null && decorator.getWhitelist().stream().anyMatch(d -> d.getBlockData(getData()).equals(bdx))) {
                         return;
                     }
                 }
@@ -72,8 +85,9 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                     ((Bisected) bd).setHalf(Bisected.Half.BOTTOM);
                 }
 
-                data.set(x, height + 1, z, bd);
-
+                if (B.isAir(data.get(x, height + 1, z))) {
+                    data.set(x, height + 1, z, fixFaces(bd, x, height + 1, z));
+                }
             } else {
                 if (height < getDimension().getFluidHeight()) {
                     max = getDimension().getFluidHeight();
@@ -138,5 +152,25 @@ public class IrisSurfaceDecorator extends IrisEngineDecorator {
                 }
             }
         }
+    }
+
+    private BlockData fixFaces(BlockData b, int x, int y, int z) {
+        if (B.isVineBlock(b)) {
+            MultipleFacing data = (MultipleFacing) b.clone();
+            boolean found = false;
+            for (BlockFace f : BlockFace.values()) {
+                if (!f.isCartesian())
+                    continue;
+                Material m = getEngine().getMantle().get(x + f.getModX(), y + f.getModY(), z + f.getModZ()).getMaterial();
+                if (m.isSolid()) {
+                    found = true;
+                    data.setFace(f, m.isSolid());
+                }
+            }
+            if (!found)
+                data.setFace(BlockFace.UP, true);
+            return data;
+        }
+        return b;
     }
 }

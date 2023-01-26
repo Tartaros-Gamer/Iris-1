@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,13 +22,10 @@ import com.volmit.iris.engine.actuator.IrisDecorantActuator;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
-import com.volmit.iris.engine.object.InferredType;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisDecorationPart;
-import com.volmit.iris.engine.object.IrisDecorator;
-import com.volmit.iris.engine.object.IrisPosition;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.function.Consumer4;
 import com.volmit.iris.util.hunk.Hunk;
@@ -57,7 +54,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         Mantle mantle = getEngine().getMantle().getMantle();
         MantleChunk mc = getEngine().getMantle().getMantle().getChunk(x, z);
@@ -68,7 +65,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 return;
             }
 
-            if (yy >= 256 || yy <= 0) { // Yes, skip bedrock
+            if (yy >= getEngine().getWorld().maxHeight() - getEngine().getWorld().minHeight() || yy <= 0) { // Yes, skip bedrock
                 return;
             }
 
@@ -82,6 +79,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             }
 
             positions.computeIfAbsent(Cache.key(rx, rz), (k) -> new KList<>()).qadd(yy);
+
+            //todo: Fix chunk decoration not working on chunk's border
 
             if (rz < 15 && mantle.get(xx, yy, zz + 1, MatterCavern.class) == null) {
                 walls.put(new IrisPosition(rx, yy, rz + 1), c);
@@ -108,7 +107,11 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             } else if (c.isLava()) {
                 output.set(rx, yy, rz, LAVA);
             } else {
-                output.set(rx, yy, rz, AIR);
+                if (getEngine().getDimension().getCaveLavaHeight() > yy) {
+                    output.set(rx, yy, rz, LAVA);
+                } else {
+                    output.set(rx, yy, rz, AIR);
+                }
             }
         };
 
@@ -123,7 +126,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 biome.setInferredType(InferredType.CAVE);
                 BlockData d = biome.getWall().get(rng, i.getX() + (x << 4), i.getY(), i.getZ() + (z << 4), getData());
 
-                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ())) && i.getY() <= getComplex().getHeightStream().get(i.getX() + (x << 4), i.getZ() + (z << 4))) {
+                if (d != null && B.isSolid(output.get(i.getX(), i.getY(), i.getZ())) && i.getY() <= context.getHeight().get(i.getX(), i.getZ())) {
                     output.set(i.getX(), i.getY(), i.getZ(), d);
                 }
             }
@@ -142,14 +145,14 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             int buf = v.get(0) - 1;
 
             for (Integer i : v) {
-                if (i < 0 || i > 255) {
+                if (i < 0 || i > getEngine().getHeight()) {
                     continue;
                 }
 
                 if (i == buf + 1) {
                     buf = i;
                     zone.ceiling = buf;
-                } else if (zone.isValid()) {
+                } else if (zone.isValid(getEngine())) {
                     processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
                     zone = new CaveZone();
                     zone.setFloor(i);
@@ -157,7 +160,7 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
                 }
             }
 
-            if (zone.isValid()) {
+            if (zone.isValid(getEngine())) {
                 processZone(output, mc, mantle, zone, rx, rz, rx + (x << 4), rz + (z << 4));
             }
         });
@@ -268,8 +271,8 @@ public class IrisCarveModifier extends EngineAssignedModifier<BlockData> {
             return (ceiling - floor) - 1;
         }
 
-        public boolean isValid() {
-            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= 255 && airThickness() > 0;
+        public boolean isValid(Engine engine) {
+            return floor < ceiling && ceiling - floor >= 1 && floor >= 0 && ceiling <= engine.getHeight() && airThickness() > 0;
         }
 
         public String toString() {

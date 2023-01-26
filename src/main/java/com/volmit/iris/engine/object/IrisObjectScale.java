@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ import lombok.experimental.Accessors;
 @Desc("Scale objects")
 @Data
 public class IrisObjectScale {
-    private static transient ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
+    private static ConcurrentLinkedHashMap<IrisObject, KList<IrisObject>> cache
             = new ConcurrentLinkedHashMap.Builder<IrisObject, KList<IrisObject>>()
             .initialCapacity(64)
             .maximumWeightedCapacity(1024)

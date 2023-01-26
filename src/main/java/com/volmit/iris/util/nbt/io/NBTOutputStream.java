@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,20 +20,7 @@ package com.volmit.iris.util.nbt.io;
 
 import com.volmit.iris.engine.data.io.ExceptionTriConsumer;
 import com.volmit.iris.engine.data.io.MaxDepthIO;
-import com.volmit.iris.util.nbt.tag.ByteArrayTag;
-import com.volmit.iris.util.nbt.tag.ByteTag;
-import com.volmit.iris.util.nbt.tag.CompoundTag;
-import com.volmit.iris.util.nbt.tag.DoubleTag;
-import com.volmit.iris.util.nbt.tag.EndTag;
-import com.volmit.iris.util.nbt.tag.FloatTag;
-import com.volmit.iris.util.nbt.tag.IntArrayTag;
-import com.volmit.iris.util.nbt.tag.IntTag;
-import com.volmit.iris.util.nbt.tag.ListTag;
-import com.volmit.iris.util.nbt.tag.LongArrayTag;
-import com.volmit.iris.util.nbt.tag.LongTag;
-import com.volmit.iris.util.nbt.tag.ShortTag;
-import com.volmit.iris.util.nbt.tag.StringTag;
-import com.volmit.iris.util.nbt.tag.Tag;
+import com.volmit.iris.util.nbt.tag.*;
 
 import java.io.DataOutputStream;
 import java.io.IOException;

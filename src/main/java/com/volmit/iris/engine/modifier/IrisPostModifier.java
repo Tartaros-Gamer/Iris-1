@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ package com.volmit.iris.engine.modifier;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedModifier;
 import com.volmit.iris.engine.object.IrisBiome;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.hunk.Hunk;
 import com.volmit.iris.util.math.RNG;
@@ -28,6 +29,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
+import org.bukkit.block.data.MultipleFacing;
 import org.bukkit.block.data.Waterlogged;
 import org.bukkit.block.data.type.Slab;
 
@@ -44,7 +46,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
     }
 
     @Override
-    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore) {
+    public void onModify(int x, int z, Hunk<BlockData> output, boolean multicore, ChunkContext context) {
         PrecisionStopwatch p = PrecisionStopwatch.start();
         AtomicInteger i = new AtomicInteger();
         AtomicInteger j = new AtomicInteger();
@@ -53,15 +55,14 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
             for (j.set(0); j.get() < output.getDepth(); j.getAndIncrement()) {
                 int ii = i.get();
                 int jj = j.get();
-                post(ii, jj, sync, ii + x, jj + z);
+                post(ii, jj, sync, ii + x, jj + z, context);
             }
         }
 
         getEngine().getMetrics().getPost().put(p.getMilliseconds());
     }
 
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z) {
+    private void post(int currentPostX, int currentPostZ, Hunk<BlockData> currentData, int x, int z, ChunkContext context) {
         int h = getEngine().getMantle().trueHeight(x, z);
         int ha = getEngine().getMantle().trueHeight(x + 1, z);
         int hb = getEngine().getMantle().trueHeight(x, z + 1);
@@ -136,7 +137,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         }
 
         // Wall Patcher
-        IrisBiome biome = getComplex().getTrueBiomeStream().get(x, z);
+        IrisBiome biome = context.getBiome().get(currentPostX, currentPostZ);
 
         if (getDimension().isPostProcessingWalls()) {
             if (!biome.getWall().getPalette().isEmpty()) {
@@ -222,10 +223,20 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
         // Foliage
         b = getPostBlock(x, h + 1, z, currentPostX, currentPostZ, currentData);
 
+        if (B.isVineBlock(b) && b instanceof MultipleFacing f) {
+            int finalH = h + 1;
+
+            f.getAllowedFaces().forEach(face -> {
+                BlockData d = getPostBlock(x + face.getModX(), finalH + face.getModY(), z + face.getModZ(), currentPostX, currentPostZ, currentData);
+                f.setFace(face, !B.isAir(d) && !B.isVineBlock(d));
+            });
+            setPostBlock(x, h + 1, z, b, currentPostX, currentPostZ, currentData);
+        }
+
         if (B.isFoliage(b) || b.getMaterial().equals(Material.DEAD_BUSH)) {
             Material onto = getPostBlock(x, h, z, currentPostX, currentPostZ, currentData).getMaterial();
 
-            if (!B.canPlaceOnto(b.getMaterial(), onto)) {
+            if (!B.canPlaceOnto(b.getMaterial(), onto) && !B.isDecorant(b)) {
                 setPostBlock(x, h + 1, z, AIR, currentPostX, currentPostZ, currentData);
             }
         }
@@ -243,7 +254,7 @@ public class IrisPostModifier extends EngineAssignedModifier<BlockData> {
 
     public boolean isSolid(int x, int y, int z, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {
         BlockData d = getPostBlock(x, y, z, currentPostX, currentPostZ, currentData);
-        return d.getMaterial().isSolid();
+        return d.getMaterial().isSolid() && !B.isVineBlock(d);
     }
 
     public boolean isSolidNonSlab(int x, int y, int z, int currentPostX, int currentPostZ, Hunk<BlockData> currentData) {

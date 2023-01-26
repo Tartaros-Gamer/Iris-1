@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,40 +18,12 @@
 
 package com.volmit.iris.util.hunk;
 
+import com.volmit.iris.Iris;
 import com.volmit.iris.engine.object.IrisPosition;
 import com.volmit.iris.util.collection.KList;
-import com.volmit.iris.util.function.Consumer2;
-import com.volmit.iris.util.function.Consumer3;
-import com.volmit.iris.util.function.Consumer4;
-import com.volmit.iris.util.function.Consumer4IO;
-import com.volmit.iris.util.function.Consumer5;
-import com.volmit.iris.util.function.Consumer6;
-import com.volmit.iris.util.function.Consumer8;
-import com.volmit.iris.util.function.Function3;
-import com.volmit.iris.util.function.Function4;
-import com.volmit.iris.util.function.NoiseProvider;
-import com.volmit.iris.util.function.NoiseProvider3;
-import com.volmit.iris.util.function.Supplier3R;
-import com.volmit.iris.util.hunk.storage.ArrayHunk;
-import com.volmit.iris.util.hunk.storage.AtomicDoubleHunk;
-import com.volmit.iris.util.hunk.storage.AtomicHunk;
-import com.volmit.iris.util.hunk.storage.AtomicIntegerHunk;
-import com.volmit.iris.util.hunk.storage.AtomicLongHunk;
-import com.volmit.iris.util.hunk.storage.MappedHunk;
-import com.volmit.iris.util.hunk.storage.SynchronizedArrayHunk;
-import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
-import com.volmit.iris.util.hunk.view.ChunkBiomeHunkView;
-import com.volmit.iris.util.hunk.view.ChunkDataHunkView;
-import com.volmit.iris.util.hunk.view.ChunkHunkView;
-import com.volmit.iris.util.hunk.view.DriftHunkView;
-import com.volmit.iris.util.hunk.view.FringedHunkView;
-import com.volmit.iris.util.hunk.view.FunctionalHunkView;
-import com.volmit.iris.util.hunk.view.HunkView;
-import com.volmit.iris.util.hunk.view.InvertedHunkView;
-import com.volmit.iris.util.hunk.view.ListeningHunk;
-import com.volmit.iris.util.hunk.view.ReadOnlyHunk;
-import com.volmit.iris.util.hunk.view.SynchronizedHunkView;
-import com.volmit.iris.util.hunk.view.WriteTrackHunk;
+import com.volmit.iris.util.function.*;
+import com.volmit.iris.util.hunk.storage.*;
+import com.volmit.iris.util.hunk.view.*;
 import com.volmit.iris.util.interpolation.InterpolationMethod;
 import com.volmit.iris.util.interpolation.InterpolationMethod3D;
 import com.volmit.iris.util.interpolation.IrisInterpolation;
@@ -98,8 +70,8 @@ public interface Hunk<T> {
         return new FunctionalHunkView<A, B>(src, reader, writer);
     }
 
-    static Hunk<Biome> view(BiomeGrid biome) {
-        return new BiomeGridHunkView(biome);
+    static Hunk<Biome> view(BiomeGrid biome, int minHeight, int maxHeight) {
+        return new BiomeGridHunkView(biome, minHeight, maxHeight);
     }
 
     static <T> Hunk<T> fringe(Hunk<T> i, Hunk<T> o) {
@@ -1206,6 +1178,11 @@ public interface Hunk<T> {
      * @param t the value
      */
     default void set(int x, int y, int z, T t) {
+        if (!contains(x, y, z)) {
+            Iris.warn("OUT OF BOUNDS " + x + " " + y + " " + z + " in bounds " + getWidth() + " " + getHeight() + " " + getDepth());
+            return;
+        }
+
         setRaw(x, y, z, t);
     }
 
@@ -1338,7 +1315,8 @@ public interface Hunk<T> {
     }
 
     /**
-     * Insert a hunk into this one with an offset and possibly inverting the y of. Will never insert a node if its already used
+     * Insert a hunk into this one with an offset and possibly inverting the y of. Will never insert a node if its
+     * already used
      * the inserted hunk
      *
      * @param offX    the offset from zero for x
@@ -1477,5 +1455,9 @@ public interface Hunk<T> {
 
     default boolean contains(int x, int y, int z) {
         return x < getWidth() && x >= 0 && y < getHeight() && y >= 0 && z < getDepth() && z >= 0;
+    }
+
+    default int volume() {
+        return getWidth() * getDepth() * getHeight();
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ public class MCATerrainChunk implements TerrainChunk {
         int xx = (x + ox) & 15;
         int zz = (z + oz) & 15;
 
-        if (y > 255 || y < 0) {
+        if (y > getMaxHeight() || y < getMinHeight()) {
             return;
         }
 
@@ -98,8 +98,8 @@ public class MCATerrainChunk implements TerrainChunk {
             y = getMaxHeight();
         }
 
-        if (y < 0) {
-            y = 0;
+        if (y < getMinHeight()) {
+            y = getMinHeight();
         }
 
         return NBTWorld.getBlockData(mcaChunk.getBlockStateAt((x + ox) & 15, y, (z + oz) & 15));

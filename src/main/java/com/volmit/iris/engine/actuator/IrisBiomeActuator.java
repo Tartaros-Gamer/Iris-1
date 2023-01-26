@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +18,24 @@
 
 package com.volmit.iris.engine.actuator;
 
-import com.volmit.iris.Iris;
 import com.volmit.iris.core.nms.INMS;
-import com.volmit.iris.engine.data.chunk.TerrainChunk;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.EngineAssignedActuator;
 import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisBiomeCustom;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
-import com.volmit.iris.util.hunk.view.BiomeGridHunkView;
 import com.volmit.iris.util.math.RNG;
-import com.volmit.iris.util.parallel.BurstExecutor;
+import com.volmit.iris.util.matter.MatterBiomeInject;
+import com.volmit.iris.util.matter.slices.BiomeInjectMatter;
+import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import org.bukkit.block.Biome;
-import org.bukkit.generator.ChunkGenerator;
 
 public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     private final RNG rng;
+    private final ChronoLatch cl = new ChronoLatch(5000);
 
     public IrisBiomeActuator(Engine engine) {
         super(engine, "Biome");
@@ -43,67 +43,30 @@ public class IrisBiomeActuator extends EngineAssignedActuator<Biome> {
     }
 
     @BlockCoordinates
-    private boolean injectBiome(Hunk<Biome> h, int x, int y, int z, Object bb) {
-        try {
-            if (h instanceof BiomeGridHunkView hh) {
-                ChunkGenerator.BiomeGrid g = hh.getChunk();
-                if (g instanceof TerrainChunk) {
-                    ((TerrainChunk) g).getBiomeBaseInjector().setBiome(x, y, z, bb);
-                } else {
-                    hh.forceBiomeBaseInto(x, y, z, bb);
-                }
-                return true;
-            }
-        } catch (Throwable e) {
-
-        }
-
-        return false;
-    }
-
-    @BlockCoordinates
     @Override
-    public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore) {
-        PrecisionStopwatch p = PrecisionStopwatch.start();
-        BurstExecutor burst = burst().burst(multicore);
-
-        for (int xf = 0; xf < h.getWidth(); xf++) {
-            int finalXf = xf;
-            burst.queue(() -> {
+    public void onActuate(int x, int z, Hunk<Biome> h, boolean multicore, ChunkContext context) {
+        try {
+            PrecisionStopwatch p = PrecisionStopwatch.start();
+            for (int xf = 0; xf < h.getWidth(); xf++) {
                 IrisBiome ib;
                 for (int zf = 0; zf < h.getDepth(); zf++) {
-                    ib = getComplex().getTrueBiomeStream().get(finalXf + x, zf + z);
-                    int maxHeight = (int) (getComplex().getFluidHeight() + ib.getMaxWithObjectHeight(getData()));
+                    ib = context.getBiome().get(xf, zf);
+                    MatterBiomeInject matter;
+
                     if (ib.isCustom()) {
-                        try {
-                            IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
-                            Object biomeBase = INMS.get().getCustomBiomeBaseFor(getDimension().getLoadKey() + ":" + custom.getId());
-
-                            if (biomeBase == null || !injectBiome(h, x, 0, z, biomeBase)) {
-                                throw new RuntimeException("Cant inject biome!");
-                            }
-
-                            for (int i = 0; i < maxHeight; i++) {
-                                injectBiome(h, finalXf, i, zf, biomeBase);
-                            }
-                        } catch (Throwable e) {
-                            Iris.reportError(e);
-                            Biome v = ib.getSkyBiome(rng, x, 0, z);
-                            for (int i = 0; i < maxHeight; i++) {
-                                h.set(finalXf, i, zf, v);
-                            }
-                        }
+                        IrisBiomeCustom custom = ib.getCustomBiome(rng, x, 0, z);
+                        matter = BiomeInjectMatter.get(INMS.get().getBiomeBaseIdForKey(getDimension().getLoadKey() + ":" + custom.getId()));
                     } else {
                         Biome v = ib.getSkyBiome(rng, x, 0, z);
-                        for (int i = 0; i < maxHeight; i++) {
-                            h.set(finalXf, i, zf, v);
-                        }
+                        matter = BiomeInjectMatter.get(v);
                     }
-                }
-            });
-        }
 
-        burst.complete();
-        getEngine().getMetrics().getBiome().put(p.getMilliseconds());
+                    getEngine().getMantle().getMantle().set(x + xf, 0, z + zf, matter);
+                }
+            }
+            getEngine().getMetrics().getBiome().put(p.getMilliseconds());
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 }

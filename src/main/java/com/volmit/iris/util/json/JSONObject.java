@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,15 +28,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.ResourceBundle;
-import java.util.Set;
 
 /**
  * A JSONObject is an unordered collection of name/value pairs. Its external
@@ -116,7 +109,6 @@ public class JSONObject {
      *
      * @param jo    A JSONObject.
      * @param names An array of strings.
-     * @throws JSONException
      * @throws JSONException If a value is a non-finite number or if a name is
      *                       duplicated.
      */
@@ -189,7 +181,6 @@ public class JSONObject {
      *
      * @param map A map object that can be used to initialize the contents of
      *            the JSONObject.
-     * @throws JSONException
      */
     public JSONObject(Map<String, Object> map) {
         this.map = new LinkedHashMap<>();
@@ -1365,7 +1356,6 @@ public class JSONObject {
      * @param key   A key string.
      * @param value A Collection value.
      * @return this.
-     * @throws JSONException
      */
     public JSONObject put(String key, Collection<Object> value) throws JSONException {
         this.put(key, new JSONArray(value));
@@ -1418,7 +1408,6 @@ public class JSONObject {
      * @param key   A key string.
      * @param value A Map value.
      * @return this.
-     * @throws JSONException
      */
     public JSONObject put(String key, Map<String, Object> value) throws JSONException {
         this.put(key, new JSONObject(value));
@@ -1606,7 +1595,6 @@ public class JSONObject {
      * Warning: This method assumes that the data structure is acyclical.
      *
      * @return The writer.
-     * @throws JSONException
      */
     public Writer write(Writer writer) throws JSONException {
         return this.write(writer, 0, 0);
@@ -1619,7 +1607,6 @@ public class JSONObject {
      * Warning: This method assumes that the data structure is acyclical.
      *
      * @return The writer.
-     * @throws JSONException
      */
     Writer write(Writer writer, int indentFactor, int indent) throws JSONException {
         try {

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import com.volmit.iris.engine.object.IrisBiome;
 import com.volmit.iris.engine.object.IrisJigsawStructure;
 import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisRegion;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.format.Form;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.Position2;
@@ -35,9 +36,12 @@ import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import com.volmit.iris.util.scheduling.jobs.SingleJob;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import oshi.util.tuples.Pair;
 
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,14 +52,62 @@ import java.util.function.Consumer;
 
 @FunctionalInterface
 public interface Locator<T> {
-    boolean matches(Engine engine, Position2 chunk);
-
     static void cancelSearch() {
         if (LocatorCanceller.cancel != null) {
             LocatorCanceller.cancel.run();
             LocatorCanceller.cancel = null;
         }
     }
+
+    static Locator<IrisRegion> region(String loadKey) {
+        return (e, c) -> e.getRegion((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
+    }
+
+    static Locator<IrisJigsawStructure> jigsawStructure(String loadKey) {
+        return (e, c) -> {
+            IrisJigsawStructure s = e.getStructureAt(c.getX(), c.getZ());
+            return s != null && s.getLoadKey().equals(loadKey);
+        };
+    }
+
+    static Locator<IrisObject> object(String loadKey) {
+        return (e, c) -> e.getObjectsAt(c.getX(), c.getZ()).contains(loadKey);
+    }
+
+    static Locator<IrisBiome> surfaceBiome(String loadKey) {
+        return (e, c) -> e.getSurfaceBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
+    }
+
+    static Locator<BlockPos> poi(String type) {
+        return (e, c) -> {
+            Set<Pair<String, BlockPos>> pos = e.getPOIsAt((c.getX() << 4) + 8, (c.getZ() << 4) + 8);
+            return pos.stream().anyMatch(p -> p.getA().equals(type));
+        };
+    }
+
+    static Locator<IrisBiome> caveBiome(String loadKey) {
+        return (e, c) -> e.getCaveBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
+    }
+
+    static Locator<IrisBiome> caveOrMantleBiome(String loadKey) {
+        return (e, c) -> {
+            AtomicBoolean found = new AtomicBoolean(false);
+            e.generateMatter(c.getX(), c.getZ(), true, new ChunkContext(c.getX() << 4, c.getZ() << 4, e.getComplex(), false));
+            e.getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, t) -> {
+                if (found.get()) {
+                    return;
+                }
+
+                if (t != null && t.getCustomBiome().equals(loadKey)) {
+                    found.set(true);
+                }
+            });
+
+            return found.get();
+        };
+    }
+
+    boolean matches(Engine engine, Position2 chunk);
 
     default void find(Player player) {
         find(player, 30_000);
@@ -147,46 +199,5 @@ public interface Locator<T> {
 
             return null;
         });
-    }
-
-    static Locator<IrisRegion> region(String loadKey) {
-        return (e, c) -> e.getRegion((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
-    }
-
-    static Locator<IrisJigsawStructure> jigsawStructure(String loadKey) {
-        return (e, c) -> {
-            IrisJigsawStructure s = e.getStructureAt(c.getX(), c.getZ());
-            return s != null && s.getLoadKey().equals(loadKey);
-        };
-    }
-
-    static Locator<IrisObject> object(String loadKey) {
-        return (e, c) -> e.getObjectsAt(c.getX(), c.getZ()).contains(loadKey);
-    }
-
-    static Locator<IrisBiome> surfaceBiome(String loadKey) {
-        return (e, c) -> e.getSurfaceBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
-    }
-
-    static Locator<IrisBiome> caveBiome(String loadKey) {
-        return (e, c) -> e.getCaveBiome((c.getX() << 4) + 8, (c.getZ() << 4) + 8).getLoadKey().equals(loadKey);
-    }
-
-    static Locator<IrisBiome> caveOrMantleBiome(String loadKey) {
-        return (e, c) -> {
-            AtomicBoolean found = new AtomicBoolean(false);
-            e.generateMatter(c.getX(), c.getZ(), true);
-            e.getMantle().getMantle().iterateChunk(c.getX(), c.getZ(), MatterCavern.class, (x, y, z, t) -> {
-                if (found.get()) {
-                    return;
-                }
-
-                if (t != null && t.getCustomBiome().equals(loadKey)) {
-                    found.set(true);
-                }
-            });
-
-            return found.get();
-        };
     }
 }

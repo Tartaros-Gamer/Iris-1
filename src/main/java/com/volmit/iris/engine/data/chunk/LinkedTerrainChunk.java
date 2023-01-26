@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ public class LinkedTerrainChunk implements TerrainChunk {
     private final BiomeGrid storage;
     private ChunkData rawChunkData;
     @Setter
-    private boolean unsafe = false;
+    private boolean unsafe = true;
 
     public LinkedTerrainChunk(World world) {
         this(null, Bukkit.createChunkData(world));

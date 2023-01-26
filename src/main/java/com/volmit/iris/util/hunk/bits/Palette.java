@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ public interface Palette<T> {
     int size();
 
     default int bits() {
-        return DataContainer.bits(size()+1);
+        return DataContainer.bits(size() + 1);
     }
 
     void iterate(Consumer2<T, Integer> c);

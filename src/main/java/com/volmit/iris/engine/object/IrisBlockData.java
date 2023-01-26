@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,7 @@ import com.volmit.iris.Iris;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.loader.IrisRegistrant;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.RegistryListBlockType;
-import com.volmit.iris.engine.object.annotations.Required;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.data.B;
@@ -38,10 +34,10 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.EntityType;
 
 import java.util.Map;
 
-@SuppressWarnings("DefaultAnnotationParam")
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -198,6 +194,19 @@ public class IrisBlockData extends IrisRegistrant {
 
             return B.get("AIR");
         });
+    }
+
+    public TileData<?> tryGetTile() {
+        //TODO Do like a registry thing with the tile data registry. Also update the parsing of data to include **block** entities.
+        if (data.containsKey("entitySpawn")) {
+            TileSpawner spawner = new TileSpawner();
+            String name = (String) data.get("entitySpawn");
+            if (name.contains(":"))
+                name = name.split(":")[1];
+            spawner.setEntityType(EntityType.fromName(name));
+            return spawner;
+        }
+        return null;
     }
 
     private String keyify(String dat) {

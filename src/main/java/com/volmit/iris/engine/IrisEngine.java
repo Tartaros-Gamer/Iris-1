@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,29 +21,19 @@ package com.volmit.iris.engine;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.google.gson.Gson;
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.ServerConfigurator;
 import com.volmit.iris.core.events.IrisEngineHotloadEvent;
 import com.volmit.iris.core.gui.PregeneratorJob;
 import com.volmit.iris.core.project.IrisProject;
 import com.volmit.iris.core.service.PreservationSVC;
 import com.volmit.iris.engine.data.cache.AtomicCache;
-import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.framework.EngineEffects;
-import com.volmit.iris.engine.framework.EngineMetrics;
-import com.volmit.iris.engine.framework.EngineMode;
-import com.volmit.iris.engine.framework.EngineTarget;
-import com.volmit.iris.engine.framework.EngineWorldManager;
-import com.volmit.iris.engine.framework.SeedManager;
-import com.volmit.iris.engine.framework.WrongEngineBroException;
+import com.volmit.iris.engine.framework.*;
 import com.volmit.iris.engine.mantle.EngineMantle;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
-import com.volmit.iris.engine.object.IrisDecorator;
-import com.volmit.iris.engine.object.IrisEngineData;
-import com.volmit.iris.engine.object.IrisJigsawStructure;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.engine.scripting.EngineExecutionEnvironment;
 import com.volmit.iris.util.atomics.AtomicRollingSequence;
 import com.volmit.iris.util.collection.KMap;
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.context.IrisContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.format.C;
@@ -53,18 +43,22 @@ import com.volmit.iris.util.io.IO;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterStructurePOI;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import lombok.Data;
+import net.minecraft.core.BlockPos;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
+import oshi.util.tuples.Pair;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -87,11 +81,11 @@ public class IrisEngine implements Engine {
     private final boolean studio;
     private final AtomicRollingSequence wallClock;
     private final int art;
-    private EngineMode mode;
     private final AtomicCache<IrisEngineData> engineData = new AtomicCache<>();
     private final AtomicBoolean cleaning;
     private final ChronoLatch cleanLatch;
     private final SeedManager seedManager;
+    private EngineMode mode;
     private EngineEffects effects;
     private EngineExecutionEnvironment execution;
     private EngineWorldManager worldManager;
@@ -126,8 +120,9 @@ public class IrisEngine implements Engine {
         context = new IrisContext(this);
         cleaning = new AtomicBoolean(false);
         context.touch();
-        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + 256 + " height) Seed: " + getSeedManager().getSeed());
         getData().setEngine(this);
+        getData().loadPrefetch(this);
+        Iris.info("Initializing Engine: " + target.getWorld().name() + "/" + target.getDimension().getLoadKey() + " (" + target.getDimension().getDimensionHeight() + " height) Seed: " + getSeedManager().getSeed());
         minHeight = 0;
         failing = false;
         closed = false;
@@ -143,6 +138,7 @@ public class IrisEngine implements Engine {
     }
 
     private void tickRandomPlayer() {
+        recycle();
         if (perSecondBudLatch.flip()) {
             buds.set(bud.get());
             bud.set(0);
@@ -190,13 +186,20 @@ public class IrisEngine implements Engine {
     }
 
     @Override
-    public void generateMatter(int x, int z, boolean multicore) {
-        getMantle().generateMatter(x, z, multicore);
+    public void generateMatter(int x, int z, boolean multicore, ChunkContext context) {
+        getMantle().generateMatter(x, z, multicore, context);
     }
 
     @Override
     public Set<String> getObjectsAt(int x, int z) {
         return getMantle().getObjectComponent().guess(x, z);
+    }
+
+    @Override
+    public Set<Pair<String, BlockPos>> getPOIsAt(int chunkX, int chunkY) {
+        Set<Pair<String, BlockPos>> pois = new HashSet<>();
+        getMantle().getMantle().iterateChunk(chunkX, chunkY, MatterStructurePOI.class, (x, y, z, d) -> pois.add(new Pair<>(d.getType(), new BlockPos(x, y, z))));
+        return pois;
     }
 
     @Override
@@ -232,12 +235,15 @@ public class IrisEngine implements Engine {
         getTarget().setDimension(getData().getDimensionLoader().load(getDimension().getLoadKey()));
         prehotload();
         setupEngine();
+        J.a(() -> {
+            synchronized (ServerConfigurator.class) {
+                ServerConfigurator.installDataPacks(false);
+            }
+        });
     }
 
     @Override
     public IrisEngineData getEngineData() {
-        World w = null;
-
         return engineData.aquire(() -> {
             //TODO: Method this file
             File f = new File(getWorld().worldFolder(), "iris/engine-data/" + getDimension().getLoadKey() + ".json");
@@ -450,7 +456,10 @@ public class IrisEngine implements Engine {
             getMantle().getMantle().flag(x >> 4, z >> 4, MantleFlag.REAL, true);
             getMetrics().getTotal().put(p.getMilliseconds());
             generated.incrementAndGet();
-            recycle();
+
+            if (generated.get() == 661) {
+                J.a(() -> getData().savePrefetch(this));
+            }
         } catch (Throwable e) {
             Iris.reportError(e);
             fail("Failed to generate " + x + ", " + z, e);
@@ -483,6 +492,15 @@ public class IrisEngine implements Engine {
         }
 
         return getData().getBiomeLoader().load(getDimension().getFocus());
+    }
+
+    @Override
+    public IrisRegion getFocusRegion() {
+        if (getDimension().getFocusRegion() == null || getDimension().getFocusRegion().trim().isEmpty()) {
+            return null;
+        }
+
+        return getData().getRegionLoader().load(getDimension().getFocusRegion());
     }
 
     @Override

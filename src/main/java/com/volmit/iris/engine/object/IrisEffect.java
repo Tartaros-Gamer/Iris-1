@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,13 +21,7 @@ package com.volmit.iris.engine.object;
 import com.volmit.iris.Iris;
 import com.volmit.iris.engine.data.cache.AtomicCache;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.annotations.ArrayType;
-import com.volmit.iris.engine.object.annotations.DependsOn;
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.ChronoLatch;
 import com.volmit.iris.util.scheduling.J;
@@ -209,8 +203,9 @@ public class IrisEffect {
 
             part.setY(Math.round(g.getHeight(part.getBlockX(), part.getBlockZ())) + 1);
             part.add(RNG.r.d(), 0, RNG.r.d());
+            int offset = p.getWorld().getMinHeight();
             if (extra != 0) {
-                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),
+                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
                         part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
@@ -218,7 +213,7 @@ public class IrisEffect {
                         randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
                         extra));
             } else {
-                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
+                J.s(() -> p.spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
                         randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,
@@ -266,8 +261,9 @@ public class IrisEffect {
         if (particleEffect != null) {
             Location part = p.getLocation().clone().add(0, 0.25, 0).add(new Vector(1, 1, 1).multiply(RNG.r.d())).subtract(new Vector(1, 1, 1).multiply(RNG.r.d()));
             part.add(RNG.r.d(), 0, RNG.r.d());
+            int offset = p.getWorld().getMinHeight();
             if (extra != 0) {
-                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset),
+                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset),
                         part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
@@ -275,7 +271,7 @@ public class IrisEffect {
                         randomAltZ ? RNG.r.d(-particleAltZ, particleAltZ) : particleAltZ,
                         extra));
             } else {
-                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + RNG.r.i(particleOffset), part.getZ(),
+                J.s(() -> p.getWorld().spawnParticle(particleEffect, part.getX(), part.getY() + offset + RNG.r.i(particleOffset), part.getZ(),
                         particleCount,
                         randomAltX ? RNG.r.d(-particleAltX, particleAltX) : particleAltX,
                         randomAltY ? RNG.r.d(-particleAltY, particleAltY) : particleAltY,

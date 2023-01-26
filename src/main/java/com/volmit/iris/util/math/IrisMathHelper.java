@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -376,9 +376,8 @@ public class IrisMathHelper {
                 var9 = var5;
                 var10 = var6;
             }
-            default -> {
-                throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
-            }
+            default ->
+                    throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + var0 + ", " + var1 + ", " + var2);
         }
         final int var11 = clamp((int) (var8 * 255.0f), 0, 255);
         final int var12 = clamp((int) (var9 * 255.0f), 0, 255);

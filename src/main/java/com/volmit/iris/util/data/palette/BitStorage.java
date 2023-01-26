@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,6 +59,31 @@ public class BitStorage {
         this(bits, length, (AtomicLongArray) null);
     }
 
+    public BitStorage(int bits, int length, long[] data) {
+        this(bits, length, atomic(data));
+    }
+
+    public BitStorage(int bits, int length, AtomicLongArray data) {
+        Validate.inclusiveBetween(1L, 32L, bits);
+        this.size = length;
+        this.bits = bits;
+        this.mask = (1L << bits) - 1L;
+        this.valuesPerLong = (char) (64 / bits);
+        int var3 = 3 * (this.valuesPerLong - 1);
+        this.divideMul = MAGIC[var3];
+        this.divideAdd = MAGIC[var3 + 1];
+        this.divideShift = MAGIC[var3 + 2];
+        int var4 = (length + this.valuesPerLong - 1) / this.valuesPerLong;
+        if (data != null) {
+            if (data.length() != var4) {
+                throw new RuntimeException("NO!");
+            }
+            this.data = data;
+        } else {
+            this.data = new AtomicLongArray(var4);
+        }
+    }
+
     private static AtomicLongArray atomic(long[] data) {
         if (data == null) {
             return null;
@@ -83,31 +108,6 @@ public class BitStorage {
         }
 
         return d;
-    }
-
-    public BitStorage(int bits, int length, long[] data) {
-        this(bits, length, atomic(data));
-    }
-
-    public BitStorage(int bits, int length, AtomicLongArray data) {
-        Validate.inclusiveBetween(1L, 32L, bits);
-        this.size = length;
-        this.bits = bits;
-        this.mask = (1L << bits) - 1L;
-        this.valuesPerLong = (char) (64 / bits);
-        int var3 = 3 * (this.valuesPerLong - 1);
-        this.divideMul = MAGIC[var3 + 0];
-        this.divideAdd = MAGIC[var3 + 1];
-        this.divideShift = MAGIC[var3 + 2];
-        int var4 = (length + this.valuesPerLong - 1) / this.valuesPerLong;
-        if (data != null) {
-            if (data.length() != var4) {
-                throw new RuntimeException("NO!");
-            }
-            this.data = data;
-        } else {
-            this.data = new AtomicLongArray(var4);
-        }
     }
 
     private int cellIndex(int var0) {

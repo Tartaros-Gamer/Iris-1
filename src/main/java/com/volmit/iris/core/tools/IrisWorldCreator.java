@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.engine.object.IrisDimension;
 import com.volmit.iris.engine.object.IrisWorld;
 import com.volmit.iris.engine.platform.BukkitChunkGenerator;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.generator.ChunkGenerator;
@@ -33,8 +34,6 @@ public class IrisWorldCreator {
     private boolean studio = false;
     private String dimensionName = null;
     private long seed = 1337;
-    private int maxHeight = 256;
-    private int minHeight = 0;
 
     public IrisWorldCreator() {
 
@@ -42,18 +41,6 @@ public class IrisWorldCreator {
 
     public IrisWorldCreator dimension(String loadKey) {
         this.dimensionName = loadKey;
-        return this;
-    }
-
-    public IrisWorldCreator height(int maxHeight) {
-        this.maxHeight = maxHeight;
-        this.minHeight = 0;
-        return this;
-    }
-
-    public IrisWorldCreator height(int minHeight, int maxHeight) {
-        this.maxHeight = maxHeight;
-        this.minHeight = minHeight;
         return this;
     }
 
@@ -78,16 +65,18 @@ public class IrisWorldCreator {
     }
 
     public WorldCreator create() {
+        IrisDimension dim = IrisData.loadAnyDimension(dimensionName);
+
         IrisWorld w = IrisWorld.builder()
                 .name(name)
-                .minHeight(minHeight)
-                .maxHeight(maxHeight)
+                .minHeight(dim.getMinHeight())
+                .maxHeight(dim.getMaxHeight())
                 .seed(seed)
-                .worldFolder(new File(name))
+                .worldFolder(new File(Bukkit.getWorldContainer(), name))
                 .environment(findEnvironment())
                 .build();
         ChunkGenerator g = new BukkitChunkGenerator(w, studio, studio
-                ? IrisData.loadAnyDimension(dimensionName).getLoader().getDataFolder() :
+                ? dim.getLoader().getDataFolder() :
                 new File(w.worldFolder(), "iris/pack"), dimensionName);
 
         return new WorldCreator(name)

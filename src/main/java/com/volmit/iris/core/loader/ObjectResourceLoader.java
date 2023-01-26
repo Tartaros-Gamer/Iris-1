@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,33 +68,26 @@ public class ObjectResourceLoader extends ResourceLoader<IrisObject> {
         if (possibleKeys != null) {
             return possibleKeys;
         }
-
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
-
         for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".iob")) {
-                    m.add(j.getName().replaceAll("\\Q.iob\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".iob")) {
-                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.iob\\E", ""));
-                        } else if (k.isDirectory()) {
-                            for (File l : k.listFiles()) {
-                                if (l.isFile() && l.getName().endsWith(".iob")) {
-                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.iob\\E", ""));
-                                }
-                            }
-                        }
-                    }
-                }
+            m.addAll(getFiles(i, ".iob", true));
+        }
+        possibleKeys = m.toArray(new String[0]);
+        return possibleKeys;
+    }
+
+    private KList<String> getFiles(File dir, String ext, boolean skipDirName) {
+        KList<String> paths = new KList<>();
+        String name = skipDirName ? "" : dir.getName() + "/";
+        for (File f : dir.listFiles()) {
+            if (f.isFile() && f.getName().endsWith(ext)) {
+                paths.add(name + f.getName().replaceAll("\\Q" + ext + "\\E", ""));
+            } else if (f.isDirectory()) {
+                getFiles(f, ext, false).forEach(e -> paths.add(name + e));
             }
         }
-
-        KList<String> v = new KList<>(m);
-        possibleKeys = v.toArray(new String[0]);
-        return possibleKeys;
+        return paths;
     }
 
     public File findFile(String name) {

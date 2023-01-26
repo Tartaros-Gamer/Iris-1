@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,10 +27,7 @@ import com.volmit.iris.util.reflect.V;
 import com.volmit.iris.util.scheduling.J;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandMap;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.command.SimpleCommandMap;
+import org.bukkit.command.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.HandlerList;
@@ -169,7 +166,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     registerPermission(pc);
                     permissionCache.add(pc);
                     v("Registered Permissions " + pc.getFullNode() + " (" + i.getName() + ")");
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     Iris.reportError(e);
                     w("Failed to register permission (field " + i.getName() + ")");
                     e.printStackTrace();
@@ -327,7 +325,8 @@ public abstract class VolmitPlugin extends JavaPlugin implements Listener {
                     registerCommand(pc, c.value());
                     commandCache.add(pc);
                     v("Registered Commands /" + pc.getNode() + " (" + i.getName() + ")");
-                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+                } catch (IllegalArgumentException | IllegalAccessException | InstantiationException |
+                         InvocationTargetException | NoSuchMethodException | SecurityException e) {
                     w("Failed to register command (field " + i.getName() + ")");
                     e.printStackTrace();
                     Iris.reportError(e);

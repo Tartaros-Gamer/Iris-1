@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,20 +28,7 @@ import com.volmit.iris.core.service.ConversionSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.InventorySlotType;
-import com.volmit.iris.engine.object.IrisBiome;
-import com.volmit.iris.engine.object.IrisBiomePaletteLayer;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisEntity;
-import com.volmit.iris.engine.object.IrisGenerator;
-import com.volmit.iris.engine.object.IrisInterpolator;
-import com.volmit.iris.engine.object.IrisLootTable;
-import com.volmit.iris.engine.object.IrisNoiseGenerator;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisRegion;
-import com.volmit.iris.engine.object.IrisScript;
-import com.volmit.iris.engine.object.NoiseStyle;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KMap;
 import com.volmit.iris.util.collection.KSet;
@@ -61,27 +48,15 @@ import com.volmit.iris.util.math.M;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.math.Spiraler;
 import com.volmit.iris.util.noise.CNG;
-import com.volmit.iris.util.parallel.MultiBurst;
-import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.O;
 import com.volmit.iris.util.scheduling.PrecisionStopwatch;
-import com.volmit.iris.util.scheduling.jobs.Job;
-import com.volmit.iris.util.scheduling.jobs.JobCollection;
-import com.volmit.iris.util.scheduling.jobs.QueueJob;
-import com.volmit.iris.util.scheduling.jobs.SingleJob;
 import io.papermc.lib.PaperLib;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -92,45 +67,45 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 @Decree(name = "studio", aliases = {"std", "s"}, description = "Studio Commands", studio = true)
 public class CommandStudio implements DecreeExecutor {
+    private CommandFind find;
+    private CommandEdit edit;
+
     public static String hrf(Duration duration) {
         return duration.toString().substring(2).replaceAll("(\\d[HMS])(?!$)", "$1 ").toLowerCase();
     }
-    private CommandFind find;
 
     @Decree(description = "Download a project.", aliases = "dl")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
-                    String pack,
+            String pack,
             @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
-                    String branch,
+            String branch,
             @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
-                    boolean trim,
+            boolean trim,
             @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
-                    boolean overwrite
+            boolean overwrite
     ) {
         new CommandIris().download(pack, branch, trim, overwrite);
     }
 
     @Decree(description = "Open a new studio world", aliases = "o", sync = true)
     public void open(
-            @Param(defaultValue = "overworld", description = "The dimension to open a studio for", aliases = "dim")
-                    IrisDimension dimension,
+            @Param(defaultValue = "default", description = "The dimension to open a studio for", aliases = "dim")
+            IrisDimension dimension,
             @Param(defaultValue = "1337", description = "The seed to generate the studio with", aliases = "s")
-                    long seed) {
+            long seed) {
         sender().sendMessage(C.GREEN + "Opening studio for the \"" + dimension.getName() + "\" pack (seed: " + seed + ")");
         Iris.service(StudioSVC.class).open(sender(), seed, dimension.getLoadKey());
     }
 
     @Decree(description = "Open VSCode for a dimension", aliases = {"vsc", "edit"})
     public void vscode(
-            @Param(defaultValue = "overworld", description = "The dimension to open VSCode for", aliases = "dim")
-                    IrisDimension dimension
+            @Param(defaultValue = "default", description = "The dimension to open VSCode for", aliases = "dim")
+            IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "Opening VSCode for the \"" + dimension.getName() + "\" pack");
         Iris.service(StudioSVC.class).openVSCode(sender(), dimension.getLoadKey());
@@ -150,9 +125,9 @@ public class CommandStudio implements DecreeExecutor {
     @Decree(description = "Create a new studio project", aliases = "+", sync = true)
     public void create(
             @Param(description = "The name of this new Iris Project.")
-                    String name,
+            String name,
             @Param(description = "Copy the contents of an existing project in your packs folder and use it as a template in this new project.", contextual = true)
-                    IrisDimension template) {
+            IrisDimension template) {
         if (template != null) {
             Iris.service(StudioSVC.class).create(sender(), name, template.getLoadKey());
         } else {
@@ -160,134 +135,10 @@ public class CommandStudio implements DecreeExecutor {
         }
     }
 
-    @Decree(description = "Clean an Iris Project, optionally beautifying JSON & fixing block ids with missing keys. Also rebuilds the vscode schemas. ")
-    public void clean(
-            @Param(description = "The project to update", contextual = true)
-                    IrisDimension project,
-
-            @Param(defaultValue = "true", description = "Filters all valid JSON files with a beautifier (indentation: 4)")
-                    boolean beautify,
-
-            @Param(name = "fix-ids", defaultValue = "true", description = "Fixes any block ids used such as \"dirt\" will be converted to \"minecraft:dirt\"")
-                    boolean fixIds,
-
-            @Param(name = "rewrite-objects", defaultValue = "false", description = "Imports all objects and re-writes them cleaning up positions & block data in the process.")
-                    boolean rewriteObjects
-    ) {
-        KList<Job> jobs = new KList<>();
-        KList<File> files = new KList<File>();
-        files(Iris.instance.getDataFolder("packs", project.getLoadKey()), files);
-        MultiBurst burst = MultiBurst.burst;
-
-        jobs.add(new SingleJob("Updating Workspace", () -> {
-            if (!new IrisProject(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey())).updateWorkspace()) {
-                sender().sendMessage(C.GOLD + "Invalid project: " + project.getLoadKey() + ". Try deleting the code-workspace file and try again.");
-            }
-            J.sleep(250);
-        }));
-
-        sender().sendMessage("Files: " + files.size());
-
-        if (fixIds) {
-            QueueJob<File> r = new QueueJob<>() {
-                @Override
-                public void execute(File f) {
-                    try {
-                        JSONObject p = new JSONObject(IO.readAll(f));
-                        fixBlocks(p);
-                        J.sleep(1);
-                        IO.writeAll(f, p.toString(4));
-
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                @Override
-                public String getName() {
-                    return "Fixing IDs";
-                }
-            };
-
-            r.queue(files);
-            jobs.add(r);
-        }
-
-        if (beautify) {
-            QueueJob<File> r = new QueueJob<>() {
-                @Override
-                public void execute(File f) {
-                    try {
-                        JSONObject p = new JSONObject(IO.readAll(f));
-                        IO.writeAll(f, p.toString(4));
-                        J.sleep(1);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                @Override
-                public String getName() {
-                    return "Beautify";
-                }
-            };
-
-            r.queue(files);
-            jobs.add(r);
-        }
-
-        if (rewriteObjects) {
-            QueueJob<Runnable> q = new QueueJob<>() {
-                @Override
-                public void execute(Runnable runnable) {
-                    runnable.run();
-                    J.sleep(50);
-                }
-
-                @Override
-                public String getName() {
-                    return "Rewriting Objects";
-                }
-            };
-
-            IrisData data = IrisData.get(Iris.service(StudioSVC.class).getWorkspaceFolder(project.getLoadKey()));
-            for (String f : data.getObjectLoader().getPossibleKeys()) {
-                Future<?> gg = burst.complete(() -> {
-                    File ff = data.getObjectLoader().findFile(f);
-                    IrisObject oo = new IrisObject(0, 0, 0);
-                    try {
-                        oo.read(ff);
-                    } catch (Throwable e) {
-                        Iris.error("FAILER TO READ: " + f);
-                        return;
-                    }
-
-                    try {
-                        oo.write(ff);
-                    } catch (IOException e) {
-                        Iris.error("FAILURE TO WRITE: " + oo.getLoadFile());
-                    }
-                });
-
-                q.queue(() -> {
-                    try {
-                        gg.get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
-                    }
-                });
-            }
-
-            jobs.add(q);
-        }
-
-        new JobCollection("Cleaning", jobs).execute(sender());
-    }
-
     @Decree(description = "Get the version of a pack")
     public void version(
-            @Param(defaultValue = "overworld", description = "The dimension get the version of", aliases = "dim", contextual = true)
-                    IrisDimension dimension
+            @Param(defaultValue = "default", description = "The dimension get the version of", aliases = "dim", contextual = true)
+            IrisDimension dimension
     ) {
         sender().sendMessage(C.GREEN + "The \"" + dimension.getName() + "\" pack has version: " + dimension.getVersion());
     }
@@ -297,32 +148,11 @@ public class CommandStudio implements DecreeExecutor {
         Iris.service(ConversionSVC.class).check(sender());
     }
 
-    @Decree(description = "Edit the biome you are currently in", aliases = {"ebiome", "eb"}, origin = DecreeOrigin.PLAYER)
-    public void editbiome(
-            @Param(contextual = true, description = "The biome to edit")
-                    IrisBiome biome
-    ) {
-        if (noStudio()) {
-            return;
-        }
-
-        try {
-            if (biome.getLoadFile() == null) {
-                sender().sendMessage(C.GOLD + "Cannot find the file for the biome you are in! Perhaps it was not loaded directly from a file?");
-                return;
-            }
-
-            Desktop.getDesktop().open(biome.getLoadFile());
-        } catch (Throwable e) {
-            Iris.reportError(e);
-            sender().sendMessage(C.RED + "Cant find the file. Unsure why this happened.");
-        }
-    }
 
     @Decree(description = "Execute a script", aliases = "run", origin = DecreeOrigin.PLAYER)
     public void execute(
             @Param(description = "The script to run")
-                    IrisScript script
+            IrisScript script
     ) {
         engine().getExecution().execute(script.getLoadKey());
     }
@@ -347,9 +177,9 @@ public class CommandStudio implements DecreeExecutor {
     @Decree(description = "Preview noise gens (External GUI)", aliases = {"generator", "gen"})
     public void explore(
             @Param(description = "The generator to explore", contextual = true)
-                    IrisGenerator generator,
+            IrisGenerator generator,
             @Param(description = "The seed to generate with", defaultValue = "12345")
-                    long seed
+            long seed
     ) {
         if (noGUI()) return;
         sender().sendMessage(C.GREEN + "Opening Noise Explorer!");
@@ -378,9 +208,9 @@ public class CommandStudio implements DecreeExecutor {
     @Decree(description = "Show loot if a chest were right here", origin = DecreeOrigin.PLAYER, sync = true)
     public void loot(
             @Param(description = "Fast insertion of items in virtual inventory (may cause performance drop)", defaultValue = "false")
-                    boolean fast,
+            boolean fast,
             @Param(description = "Whether or not to append to the inventory currently open (if false, clears opened inventory)", defaultValue = "true")
-                    boolean add
+            boolean add
     ) {
         if (noStudio()) return;
 
@@ -419,31 +249,37 @@ public class CommandStudio implements DecreeExecutor {
     }
 
     @Decree(description = "Render a world map (External GUI)", aliases = "render")
-    public void map() {
-        if (noStudio()) return;
-
+    public void map(
+            @Param(name = "world", description = "The world to open the generator for", contextual = true)
+            World world
+    ) {
         if (noGUI()) return;
 
-        VisionGUI.launch(engine(), 0);
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.RED + "You need to be in or specify an Iris-generated world!");
+            return;
+        }
+
+        VisionGUI.launch(IrisToolbelt.access(world).getEngine(), 0);
         sender().sendMessage(C.GREEN + "Opening map!");
     }
 
     @Decree(description = "Package a dimension into a compressed format", aliases = "package")
     public void pkg(
-            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "overworld")
-                    IrisDimension dimension,
+            @Param(name = "dimension", description = "The dimension pack to compress", contextual = true, defaultValue = "default")
+            IrisDimension dimension,
             @Param(name = "obfuscate", description = "Whether or not to obfuscate the pack", defaultValue = "false")
-                    boolean obfuscate,
+            boolean obfuscate,
             @Param(name = "minify", description = "Whether or not to minify the pack", defaultValue = "true")
-                    boolean minify
+            boolean minify
     ) {
         Iris.service(StudioSVC.class).compilePackage(sender(), dimension.getLoadKey(), obfuscate, minify);
     }
 
     @Decree(description = "Profiles the performance of a dimension", origin = DecreeOrigin.PLAYER)
     public void profile(
-            @Param(description = "The dimension to profile", contextual = true, defaultValue = "overworld")
-                    IrisDimension dimension
+            @Param(description = "The dimension to profile", contextual = true, defaultValue = "default")
+            IrisDimension dimension
     ) {
         File pack = dimension.getLoadFile().getParentFile().getParentFile();
         File report = Iris.instance.getDataFile("profile.txt");
@@ -631,9 +467,9 @@ public class CommandStudio implements DecreeExecutor {
     @Decree(description = "Summon an Iris Entity", origin = DecreeOrigin.PLAYER)
     public void summon(
             @Param(description = "The Iris Entity to spawn")
-                    IrisEntity entity,
+            IrisEntity entity,
             @Param(description = "The location at which to spawn the entity", defaultValue = "self")
-                    Vector location
+            Vector location
     ) {
         if (!sender().isPlayer()) {
             sender().sendMessage(C.RED + "Players only (this is a config error. Ask support to add DecreeOrigin.PLAYER to the command you tried to run)");
@@ -663,8 +499,8 @@ public class CommandStudio implements DecreeExecutor {
 
     @Decree(description = "Update your dimension projects VSCode workspace")
     public void update(
-            @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "overworld")
-                    IrisDimension dimension
+            @Param(description = "The dimension to update the workspace of", contextual = true, defaultValue = "default")
+            IrisDimension dimension
     ) {
         sender().sendMessage(C.GOLD + "Updating Code Workspace for " + dimension.getName() + "...");
         if (new IrisProject(dimension.getLoader().getDataFolder()).updateWorkspace()) {

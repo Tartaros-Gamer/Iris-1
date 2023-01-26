@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,10 +38,12 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import com.volmit.iris.util.plugin.VolmitSender;
 import com.volmit.iris.util.scheduling.J;
 import com.volmit.iris.util.scheduling.jobs.QueueJob;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -53,16 +55,17 @@ public class CommandIris implements DecreeExecutor {
     private CommandObject object;
     private CommandJigsaw jigsaw;
     private CommandWhat what;
+    private CommandEdit edit;
     private CommandFind find;
 
     @Decree(description = "Create a new world", aliases = {"+", "c"})
     public void create(
             @Param(aliases = "world-name", description = "The name of the world to create")
-                    String name,
-            @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "overworld")
-                    IrisDimension type,
+            String name,
+            @Param(aliases = "dimension", description = "The dimension type to create the world with", defaultValue = "default")
+            IrisDimension type,
             @Param(description = "The seed to generate the world with", defaultValue = "1337")
-                    long seed
+            long seed
     ) {
         if (name.equals("iris")) {
             sender().sendMessage(C.RED + "You cannot use the world name \"iris\" for creating worlds as Iris uses this directory for studio worlds.");
@@ -70,12 +73,10 @@ public class CommandIris implements DecreeExecutor {
             return;
         }
 
-        if (new File(name).exists()) {
+        if (new File(Bukkit.getWorldContainer(), name).exists()) {
             sender().sendMessage(C.RED + "That folder already exists!");
             return;
         }
-
-        sender().sendMessage(C.RED + "You should not be using this command to create new worlds. Instead, use /mvc " + name + " NORMAL -g Iris:" + type.getName());
 
         try {
             IrisToolbelt.createWorld()
@@ -95,19 +96,62 @@ public class CommandIris implements DecreeExecutor {
         sender().sendMessage(C.GREEN + "Successfully created your world!");
     }
 
+    @Decree(description = "Remove an Iris world", aliases = {"del", "rm"}, sync = true)
+    public void remove(
+            @Param(description = "The world to remove")
+            World world,
+            @Param(description = "Whether to also remove the folder (if set to false, just does not load the world)", defaultValue = "true")
+            boolean delete
+    ) {
+        if (!IrisToolbelt.isIrisWorld(world)) {
+            sender().sendMessage(C.RED + "This is not an Iris world. Iris worlds: " + String.join(", ", Bukkit.getServer().getWorlds().stream().filter(IrisToolbelt::isIrisWorld).map(World::getName).toList()));
+            return;
+        }
+        sender().sendMessage(C.GREEN + "Removing world: " + world.getName());
+        try {
+            if (IrisToolbelt.removeWorld(world)) {
+                sender().sendMessage(C.GREEN + "Successfully removed " + world.getName() + " from bukkit.yml");
+            } else {
+                sender().sendMessage(C.YELLOW + "Looks like the world was already removed from bukkit.yml");
+            }
+        } catch (IOException e) {
+            sender().sendMessage(C.RED + "Failed to save bukkit.yml because of " + e.getMessage());
+            e.printStackTrace();
+        }
+        IrisToolbelt.evacuate(world, "Deleting world");
+        Bukkit.unloadWorld(world, false);
+        if (delete && world.getWorldFolder().delete()) {
+            sender().sendMessage(C.GREEN + "Successfully removed world folder");
+        } else {
+            sender().sendMessage(C.RED + "Failed to remove world folder");
+        }
+    }
+
     @Decree(description = "Print version information")
     public void version() {
         sender().sendMessage(C.GREEN + "Iris v" + Iris.instance.getDescription().getVersion() + " by Volmit Software");
     }
 
+    @Decree(description = "Print world height information", origin = DecreeOrigin.PLAYER)
+    public void height() {
+        sender().sendMessage(C.GREEN + "" + sender().player().getWorld().getMinHeight() + " to " + sender().player().getWorld().getMaxHeight());
+        sender().sendMessage(C.GREEN + "Total Height: " + (sender().player().getWorld().getMaxHeight() - sender().player().getWorld().getMinHeight()));
+    }
+
+    @Decree(description = "QOL command to open a overworld studio world.", sync = true)
+    public void so() {
+        sender().sendMessage(C.GREEN + "Opening studio for the \"Overworld\" pack (seed: 1337)");
+        Iris.service(StudioSVC.class).open(sender(), 1337, "overworld");
+    }
+
     @Decree(description = "Set aura spins")
     public void aura(
             @Param(description = "The h color value", defaultValue = "-20")
-                    int h,
+            int h,
             @Param(description = "The s color value", defaultValue = "7")
-                    int s,
+            int s,
             @Param(description = "The b color value", defaultValue = "8")
-                    int b
+            int b
     ) {
         IrisSettings.get().getGeneral().setSpinh(h);
         IrisSettings.get().getGeneral().setSpins(s);
@@ -119,11 +163,11 @@ public class CommandIris implements DecreeExecutor {
     @Decree(description = "Bitwise calculations")
     public void bitwise(
             @Param(description = "The first value to run calculations on")
-                    int value1,
+            int value1,
             @Param(description = "The operator: | & ^ ≺≺ ≻≻ ％")
-                    String operator,
+            String operator,
             @Param(description = "The second value to run calculations on")
-                    int value2
+            int value2
     ) {
         Integer v = null;
         switch (operator) {
@@ -144,7 +188,7 @@ public class CommandIris implements DecreeExecutor {
     @Decree(description = "Toggle debug")
     public void debug(
             @Param(name = "on", description = "Whether or not debug should be on", defaultValue = "other")
-                    Boolean on
+            Boolean on
     ) {
         boolean to = on == null ? !IrisSettings.get().getGeneral().isDebug() : on;
         IrisSettings.get().getGeneral().setDebug(to);
@@ -155,17 +199,21 @@ public class CommandIris implements DecreeExecutor {
     @Decree(description = "Download a project.", aliases = "dl")
     public void download(
             @Param(name = "pack", description = "The pack to download", defaultValue = "overworld", aliases = "project")
-                    String pack,
-            @Param(name = "branch", description = "The branch to download from", defaultValue = "master")
-                    String branch,
+            String pack,
+            @Param(name = "branch", description = "The branch to download from", defaultValue = "main")
+            String branch,
             @Param(name = "trim", description = "Whether or not to download a trimmed version (do not enable when editing)", defaultValue = "false")
-                    boolean trim,
+            boolean trim,
             @Param(name = "overwrite", description = "Whether or not to overwrite the pack with the downloaded one", aliases = "force", defaultValue = "false")
-                    boolean overwrite
+            boolean overwrite
     ) {
-        branch = pack.equals("overworld") ? "stable" : branch;
         sender().sendMessage(C.GREEN + "Downloading pack: " + pack + "/" + branch + (trim ? " trimmed" : "") + (overwrite ? " overwriting" : ""));
-        Iris.service(StudioSVC.class).downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim, overwrite);
+        if (pack.equals("overworld")) {
+            String url = "https://github.com/IrisDimensions/overworld/releases/download/" + Iris.OVERWORLD_TAG + "/overworld.zip";
+            Iris.service(StudioSVC.class).downloadRelease(sender(), url, trim, overwrite);
+        } else {
+            Iris.service(StudioSVC.class).downloadSearch(sender(), "IrisDimensions/" + pack + "/" + branch, trim, overwrite);
+        }
     }
 
     @Decree(description = "Get metrics for your world", aliases = "measure", origin = DecreeOrigin.PLAYER)
@@ -188,7 +236,7 @@ public class CommandIris implements DecreeExecutor {
     @Decree(name = "regen", description = "Regenerate nearby chunks.", aliases = "rg", sync = true, origin = DecreeOrigin.PLAYER)
     public void regen(
             @Param(name = "radius", description = "The radius of nearby cunks", defaultValue = "5")
-                    int radius
+            int radius
     ) {
         if (IrisToolbelt.isIrisWorld(player().getWorld())) {
             VolmitSender sender = sender();
@@ -259,13 +307,13 @@ public class CommandIris implements DecreeExecutor {
     @Decree(description = "Update the pack of a world (UNSAFE!)", name = "^world", aliases = "update-world")
     public void updateWorld(
             @Param(description = "The world to update", contextual = true)
-                    World world,
+            World world,
             @Param(description = "The pack to install into the world", contextual = true, aliases = "dimension")
-                    IrisDimension pack,
+            IrisDimension pack,
             @Param(description = "Make sure to make a backup & read the warnings first!", defaultValue = "false", aliases = "c")
-                    boolean confirm,
+            boolean confirm,
             @Param(description = "Should Iris download the pack again for you", defaultValue = "false", name = "fresh-download", aliases = {"fresh", "new"})
-                    boolean freshDownload
+            boolean freshDownload
     ) {
         if (!confirm) {
             sender().sendMessage(new String[]{

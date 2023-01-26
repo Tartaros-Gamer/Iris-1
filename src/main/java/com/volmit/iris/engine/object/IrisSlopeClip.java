@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,12 +35,12 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisSlopeClip {
     @MinNumber(0)
-    @MaxNumber(255)
+    @MaxNumber(1024)
     @Desc("The minimum slope for placement")
     private double minimumSlope = 0;
 
     @MinNumber(0)
-    @MaxNumber(255)
+    @MaxNumber(1024)
     @Desc("The maximum slope for placement")
     private double maximumSlope = 10;
 

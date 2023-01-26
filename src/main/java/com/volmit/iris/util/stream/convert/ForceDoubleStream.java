@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 
 public class ForceDoubleStream extends BasicStream<Double> {
-    private ProceduralStream<?> stream;
+    private final ProceduralStream<?> stream;
 
     public ForceDoubleStream(ProceduralStream<?> stream) {
         super(null);

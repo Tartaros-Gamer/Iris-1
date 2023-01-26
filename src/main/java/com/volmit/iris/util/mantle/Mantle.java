@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package com.volmit.iris.util.mantle;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
+import com.volmit.iris.core.tools.IrisToolbelt;
 import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.mantle.EngineMantle;
@@ -41,6 +42,7 @@ import com.volmit.iris.util.parallel.MultiBurst;
 import lombok.Getter;
 import org.bukkit.Chunk;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -216,9 +218,9 @@ public class Mantle {
      */
     @ChunkCoordinates
     public <T> void iterateChunk(int x, int z, Class<T> type, Consumer4<Integer, Integer, Integer, T> iterator) {
-        if (!hasTectonicPlate(x >> 5, z >> 5)) {
+        /*if(!hasTectonicPlate(x >> 5, z >> 5)) {
             return;
-        }
+        }*/
 
         get(x >> 5, z >> 5).getOrCreate(x & 31, z & 31).iterate(type, iterator);
     }
@@ -289,7 +291,7 @@ public class Mantle {
     }
 
     /**
-     * Gets the data tat the current block position This method will attempt to find a
+     * Gets the data at the current block position This method will attempt to find a
      * Tectonic Plate either by loading it or creating a new one. This method uses
      * the hyper lock packaged with each Mantle. The hyperlock allows locking of multiple
      * threads at a single region while still allowing other threads to continue
@@ -331,6 +333,12 @@ public class Mantle {
      */
     public boolean isClosed() {
         return closed.get();
+    }
+
+    public void set(int x, int y, int z, Matter matter) {
+        for (MatterSlice<?> i : matter.getSliceMap().values()) {
+            i.iterate((mx, my, mz, v) -> set(mx + x, my + y, mz + z, v));
+        }
     }
 
     /**
@@ -488,7 +496,9 @@ public class Mantle {
                 } catch (Throwable e) {
                     Iris.error("Failed to read Tectonic Plate " + file.getAbsolutePath() + " creating a new chunk instead.");
                     Iris.reportError(e);
-                    e.printStackTrace();
+                    if (!(e instanceof EOFException)) {
+                        e.printStackTrace();
+                    }
                     Iris.panic();
                     region = new TectonicPlate(worldHeight, x, z);
                     loadedRegions.put(k, region);
@@ -518,6 +528,10 @@ public class Mantle {
     }
 
     public void deleteChunkSlice(int x, int z, Class<?> c) {
+        if (!IrisToolbelt.toolbeltConfiguration.isEmpty() && IrisToolbelt.toolbeltConfiguration.getOrDefault("retain.mantle." + c.getCanonicalName(), false)) {
+            return;
+        }
+
         getChunk(x, z).deleteSlices(c);
     }
 

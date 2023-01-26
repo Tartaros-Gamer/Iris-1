@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -228,10 +228,11 @@ public class VolmitSender implements CommandSender {
         Iris.audiences.player(player()).showTitle(Title.title(
                 createComponent(title),
                 createComponent(subtitle),
-                Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
+                Title.Times.times(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
     public void sendProgress(double percent, String thing) {
+        //noinspection IfStatementWithIdenticalBranches
         if (percent < 0) {
             int l = 44;
             int g = (int) (1D * l);
@@ -257,43 +258,43 @@ public class VolmitSender implements CommandSender {
         Iris.audiences.player(player()).showTitle(Title.title(
                 createNoPrefixComponent(" "),
                 createNoPrefixComponent(subtitle),
-                Title.Times.of(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
+                Title.Times.times(Duration.ofMillis(i), Duration.ofMillis(s), Duration.ofMillis(o))));
     }
 
     private Component createNoPrefixComponent(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(message));
-            return MiniMessage.get().parse(t);
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(message));
+            return MiniMessage.miniMessage().deserialize(t);
         }
 
         String t = C.translateAlternateColorCodes('&', message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb(), 0.36);
-        return MiniMessage.get().parse(a);
+        return MiniMessage.miniMessage().deserialize(a);
     }
 
     private Component createNoPrefixComponentNoProcessing(String message) {
-        return MiniMessage.get().parse(message);
+        return MiniMessage.builder().postProcessor(c -> c).build().deserialize(message);
     }
 
     private Component createComponent(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
-            return MiniMessage.get().parse(t);
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
+            return MiniMessage.miniMessage().deserialize(t);
         }
 
         String t = C.translateAlternateColorCodes('&', getTag() + message);
         String a = C.aura(t, IrisSettings.get().getGeneral().getSpinh(), IrisSettings.get().getGeneral().getSpins(), IrisSettings.get().getGeneral().getSpinb());
-        return MiniMessage.get().parse(a);
+        return MiniMessage.miniMessage().deserialize(a);
     }
 
     private Component createComponentRaw(String message) {
         if (!IrisSettings.get().getGeneral().canUseCustomColors(this)) {
-            String t = C.translateAlternateColorCodes('&', MiniMessage.get().stripTokens(getTag() + message));
-            return MiniMessage.get().parse(t);
+            String t = C.translateAlternateColorCodes('&', MiniMessage.miniMessage().stripTags(getTag() + message));
+            return MiniMessage.miniMessage().deserialize(t);
         }
 
         String t = C.translateAlternateColorCodes('&', getTag() + message);
-        return MiniMessage.get().parse(t);
+        return MiniMessage.miniMessage().deserialize(t);
     }
 
     public <T> void showWaiting(String passive, CompletableFuture<T> f) {

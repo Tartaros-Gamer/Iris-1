@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,11 @@
 
 package com.volmit.iris.core.nms;
 
+import com.volmit.iris.util.mantle.Mantle;
 import com.volmit.iris.util.nbt.mca.palette.MCABiomeContainer;
 import com.volmit.iris.util.nbt.mca.palette.MCAPaletteAccess;
 import com.volmit.iris.util.nbt.tag.CompoundTag;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -55,6 +57,10 @@ public interface INMSBinding {
 
     Object getCustomBiomeBaseFor(String mckey);
 
+    Object getCustomBiomeBaseHolderFor(String mckey);
+
+    int getBiomeBaseIdForKey(String key);
+
     String getKeyForBiomeBase(Object biomeBase);
 
     Object getBiomeBase(World world, Biome biome);
@@ -82,4 +88,6 @@ public interface INMSBinding {
     }
 
     MCAPaletteAccess createPalette();
+
+    void injectBiomesFromMantle(Chunk e, Mantle mantle);
 }

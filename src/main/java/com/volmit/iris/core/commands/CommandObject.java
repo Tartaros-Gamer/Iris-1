@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,18 +19,13 @@
 package com.volmit.iris.core.commands;
 
 import com.volmit.iris.Iris;
+import com.volmit.iris.core.link.WorldEditLink;
 import com.volmit.iris.core.loader.IrisData;
 import com.volmit.iris.core.service.ObjectSVC;
 import com.volmit.iris.core.service.StudioSVC;
 import com.volmit.iris.core.service.WandSVC;
 import com.volmit.iris.engine.framework.Engine;
-import com.volmit.iris.engine.object.IObjectPlacer;
-import com.volmit.iris.engine.object.IrisDimension;
-import com.volmit.iris.engine.object.IrisObject;
-import com.volmit.iris.engine.object.IrisObjectPlacement;
-import com.volmit.iris.engine.object.IrisObjectPlacementScaleInterpolator;
-import com.volmit.iris.engine.object.IrisObjectRotation;
-import com.volmit.iris.engine.object.TileData;
+import com.volmit.iris.engine.object.*;
 import com.volmit.iris.util.data.Cuboid;
 import com.volmit.iris.util.decree.DecreeExecutor;
 import com.volmit.iris.util.decree.DecreeOrigin;
@@ -41,12 +36,7 @@ import com.volmit.iris.util.format.C;
 import com.volmit.iris.util.math.Direction;
 import com.volmit.iris.util.math.RNG;
 import com.volmit.iris.util.scheduling.Queue;
-import org.bukkit.ChatColor;
-import org.bukkit.HeightMap;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
@@ -57,15 +47,7 @@ import org.bukkit.util.Vector;
 import java.io.File;
 import java.io.IOException;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Decree(name = "object", aliases = "o", origin = DecreeOrigin.PLAYER, studio = true, description = "Iris object manipulation")
 public class CommandObject implements DecreeExecutor {
@@ -150,7 +132,7 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Check the composition of an object")
     public void analyze(
             @Param(description = "The object to analyze", customHandler = ObjectHandler.class)
-                    String object
+            String object
     ) {
         IrisObject o = IrisData.loadAnyObject(object);
         sender().sendMessage("Object Size: " + o.getW() + " * " + o.getH() + " * " + o.getD() + "");
@@ -184,7 +166,7 @@ public class CommandObject implements DecreeExecutor {
         }
 
         List<Material> sortedMatsList = amounts.keySet().stream().map(BlockData::getMaterial)
-                .sorted().collect(Collectors.toList());
+                .sorted().toList();
         Set<Material> sortedMats = new TreeSet<>(Comparator.comparingInt(materials::get).reversed());
         sortedMats.addAll(sortedMatsList);
         sender().sendMessage("== Blocks in object ==");
@@ -224,7 +206,7 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Contract a selection based on your looking direction", aliases = "-")
     public void contract(
             @Param(description = "The amount to inset by", defaultValue = "1")
-                    int amount
+            int amount
     ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Hold your wand.");
@@ -232,7 +214,10 @@ public class CommandObject implements DecreeExecutor {
         }
 
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
+        if (b == null) {
+            return;
+        }
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Cuboid cursor = new Cuboid(a1, a2);
@@ -249,18 +234,19 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Set point 1 to look", aliases = "p1")
     public void position1(
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
-                    boolean here
+            boolean here
     ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Ready your Wand.");
             return;
         }
 
-        ItemStack wand = player().getInventory().getItemInMainHand();
+        if (WandSVC.isHoldingWand(player())) {
+            Location[] g = WandSVC.getCuboid(player());
 
-        if (WandSVC.isWand(wand)) {
-            Location[] g = WandSVC.getCuboid(wand);
-
+            if (g == null) {
+                return;
+            }
             if (!here) {
                 // TODO: WARNING HEIGHT
                 g[1] = player().getTargetBlock(null, 256).getLocation().clone();
@@ -274,17 +260,19 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Set point 2 to look", aliases = "p2")
     public void position2(
             @Param(description = "Whether to use your current position, or where you look", defaultValue = "true")
-                    boolean here
+            boolean here
     ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Ready your Wand.");
             return;
         }
 
-        ItemStack wand = player().getInventory().getItemInMainHand();
+        if (WandSVC.isHoldingIrisWand(player())) {
+            Location[] g = WandSVC.getCuboid(player());
 
-        if (WandSVC.isWand(wand)) {
-            Location[] g = WandSVC.getCuboid(wand);
+            if (g == null) {
+                return;
+            }
 
             if (!here) {
                 // TODO: WARNING HEIGHT
@@ -299,13 +287,13 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Paste an object", sync = true)
     public void paste(
             @Param(description = "The object to paste", customHandler = ObjectHandler.class)
-                    String object,
+            String object,
             @Param(description = "Whether or not to edit the object (need to hold wand)", defaultValue = "false")
-                    boolean edit,
+            boolean edit,
             @Param(description = "The amount of degrees to rotate by", defaultValue = "0")
-                    int rotate,
+            int rotate,
             @Param(description = "The factor by which to scale the object placement", defaultValue = "1")
-                    double scale
+            double scale
 //            ,
 //            @Param(description = "The scale interpolator to use", defaultValue = "none")
 //            IrisObjectPlacementScaleInterpolator interpolator
@@ -327,7 +315,10 @@ public class CommandObject implements DecreeExecutor {
 
         Map<Block, BlockData> futureChanges = new HashMap<>();
 
-        o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+        if (scale != 1) {
+            o = o.scaled(scale, IrisObjectPlacementScaleInterpolator.TRICUBIC);
+        }
+
         o.place(block.getBlockX(), block.getBlockY() + (int) o.getCenter().getY(), block.getBlockZ(), createPlacer(block.getWorld(), futureChanges), placement, new RNG(), null);
 
         Iris.service(ObjectSVC.class).addChanges(futureChanges);
@@ -357,13 +348,13 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Save an object")
     public void save(
             @Param(description = "The dimension to store the object in", contextual = true)
-                    IrisDimension dimension,
+            IrisDimension dimension,
             @Param(description = "The file to store it in, can use / for subfolders")
-                    String name,
+            String name,
             @Param(description = "Overwrite existing object files", defaultValue = "false", aliases = "force")
-                    boolean overwrite
+            boolean overwrite
     ) {
-        IrisObject o = WandSVC.createSchematic(player().getInventory().getItemInMainHand());
+        IrisObject o = WandSVC.createSchematic(player());
 
         if (o == null) {
             sender().sendMessage(C.YELLOW + "You need to hold your wand!");
@@ -390,17 +381,20 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Shift a selection in your looking direction", aliases = "-")
     public void shift(
             @Param(description = "The amount to shift by", defaultValue = "1")
-                    int amount
+            int amount
     ) {
         if (!WandSVC.isHoldingWand(player())) {
             sender().sendMessage("Hold your wand.");
             return;
         }
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Direction d = Direction.closest(player().getLocation().getDirection()).reverse();
+        if (d == null) {
+            return; // HOW DID THIS HAPPEN
+        }
         a1.add(d.toVector().multiply(amount));
         a2.add(d.toVector().multiply(amount));
         Cuboid cursor = new Cuboid(a1, a2);
@@ -414,12 +408,30 @@ public class CommandObject implements DecreeExecutor {
     @Decree(description = "Undo a number of pastes", aliases = "-")
     public void undo(
             @Param(description = "The amount of pastes to undo", defaultValue = "1")
-                    int amount
+            int amount
     ) {
         ObjectSVC service = Iris.service(ObjectSVC.class);
         int actualReverts = Math.min(service.getUndos().size(), amount);
         service.revertChanges(actualReverts);
         sender().sendMessage("Reverted " + actualReverts + " pastes!");
+    }
+
+    @Decree(description = "Gets an object wand and grabs the current WorldEdit selection.", aliases = "we", origin = DecreeOrigin.PLAYER, studio = true)
+    public void we() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("WorldEdit")) {
+            sender().sendMessage(C.RED + "You can't get a WorldEdit selection without WorldEdit, you know.");
+            return;
+        }
+
+        Cuboid locs = WorldEditLink.getSelection(sender().player());
+
+        if (locs == null) {
+            sender().sendMessage(C.RED + "You don't have a WorldEdit selection in this world.");
+            return;
+        }
+
+        sender().player().getInventory().addItem(WandSVC.createWand(locs.getLowerNE(), locs.getUpperSW()));
+        sender().sendMessage(C.GREEN + "A fresh wand with your current WorldEdit selection on it!");
     }
 
     @Decree(description = "Get an object wand", sync = true)
@@ -436,7 +448,7 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
         Location a1 = b[0].clone();
         Location a2 = b[1].clone();
         Location a1x = b[0].clone();
@@ -483,7 +495,7 @@ public class CommandObject implements DecreeExecutor {
             return;
         }
 
-        Location[] b = WandSVC.getCuboid(player().getInventory().getItemInMainHand());
+        Location[] b = WandSVC.getCuboid(player());
         b[0].add(new Vector(0, 1, 0));
         b[1].add(new Vector(0, 1, 0));
         Location a1 = b[0].clone();

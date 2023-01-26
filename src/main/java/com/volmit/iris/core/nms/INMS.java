@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ package com.volmit.iris.core.nms;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
-import com.volmit.iris.core.nms.v17_1.NMSBinding17_1;
+import com.volmit.iris.core.nms.v19_3.NMSBinding19_3;
 import com.volmit.iris.core.nms.v1X.NMSBinding1X;
 import com.volmit.iris.util.collection.KMap;
 import org.bukkit.Bukkit;
@@ -28,7 +28,7 @@ import org.bukkit.Bukkit;
 public class INMS {
     //@builder
     private static final KMap<String, Class<? extends INMSBinding>> bindings = new KMap<String, Class<? extends INMSBinding>>()
-            .qput("v1_17_R1", NMSBinding17_1.class);
+            .qput("v1_19_R2", NMSBinding19_3.class);
     //@done
     private static final INMSBinding binding = bind();
 
@@ -36,7 +36,7 @@ public class INMS {
         return binding;
     }
 
-    public static final String getNMSTag() {
+    public static String getNMSTag() {
         if (IrisSettings.get().getGeneral().isDisableNMS()) {
             return "BUKKIT";
         }
@@ -52,7 +52,7 @@ public class INMS {
         return "BUKKIT";
     }
 
-    private static final INMSBinding bind() {
+    private static INMSBinding bind() {
         String code = getNMSTag();
         Iris.info("Locating NMS Binding for " + code);
 

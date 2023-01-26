@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,10 @@ public class LongHandler implements DecreeParameterHandler<Long> {
         try {
             AtomicReference<String> r = new AtomicReference<>(in);
             double m = getMultiplier(r);
-            return (long) (Long.valueOf(r.get()).doubleValue() * m);
+            if (m == 1)
+                return Long.parseLong(r.get());
+            else
+                return (long) (Long.valueOf(r.get()).doubleValue() * m);
         } catch (Throwable e) {
             throw new DecreeParsingException("Unable to parse long \"" + in + "\"");
         }

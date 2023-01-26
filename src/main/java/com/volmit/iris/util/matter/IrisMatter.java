@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,8 +44,7 @@ public class IrisMatter extends IrisRegistrant implements Matter {
     private final KMap<Class<?>, MatterSlice<?>> sliceMap;
 
     public IrisMatter(int width, int height, int depth) {
-        if(width < 1 || height < 1 || depth < 1)
-        {
+        if (width < 1 || height < 1 || depth < 1) {
             throw new RuntimeException("Invalid Matter Size " + width + "x" + height + "x" + depth);
         }
 

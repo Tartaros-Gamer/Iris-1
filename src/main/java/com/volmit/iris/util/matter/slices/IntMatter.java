@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,13 +32,13 @@ public class IntMatter extends RawMatter<Integer> {
         this(1, 1, 1);
     }
 
+    public IntMatter(int width, int height, int depth) {
+        super(width, height, depth, Integer.class);
+    }
+
     @Override
     public Palette<Integer> getGlobalPalette() {
         return null;
-    }
-
-    public IntMatter(int width, int height, int depth) {
-        super(width, height, depth, Integer.class);
     }
 
     @Override

@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,24 +35,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
 import javax.imageio.ImageIO;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLayeredPane;
-import javax.swing.JPanel;
-import javax.swing.JViewport;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.EventQueue;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -148,7 +133,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
         JFrame frame = new JFrame("Noise Explorer");
         NoiseExplorerGUI nv = new NoiseExplorerGUI();
         frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        KList<String> li = new KList<>(NoiseStyle.values()).toStringList();
+        KList<String> li = new KList<>(NoiseStyle.values()).toStringList().sort();
         combo = new JComboBox<>(li.toArray(new String[0]));
         combo.setSelectedItem("STATIC");
         combo.setFocusable(false);
@@ -292,8 +277,7 @@ public class NoiseExplorerGUI extends JPanel implements MouseWheelListener, List
                             Color color = colorMode ? Color.getHSBColor((float) (n), 1f - (float) (n * n * n * n * n * n), 1f - (float) n) : Color.getHSBColor(0f, 0f, (float) n);
                             int rgb = color.getRGB();
                             img.setRGB(xx, z, rgb);
-                        } catch (Throwable xxx) {
-
+                        } catch (Throwable ignored) {
                         }
                     }
                 });

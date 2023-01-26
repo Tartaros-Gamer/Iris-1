@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ package com.volmit.iris.core.loader;
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.IrisSettings;
 import com.volmit.iris.engine.object.IrisImage;
-import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.util.collection.KList;
 import com.volmit.iris.util.collection.KSet;
 import com.volmit.iris.util.data.KCache;
@@ -30,6 +29,7 @@ import com.volmit.iris.util.scheduling.PrecisionStopwatch;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Set;
 
 public class ImageResourceLoader extends ResourceLoader<IrisImage> {
     public ImageResourceLoader(File root, IrisData idm, String folderName, String resourceTypeName) {
@@ -67,6 +67,17 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
         }
     }
 
+    void getPNGFiles(File directory, Set<String> m) {
+        for (File file : directory.listFiles()) {
+            if (file.isFile() && file.getName().endsWith(".png")) {
+                m.add(file.getName().replaceAll("\\Q.png\\E", ""));
+            } else if (file.isDirectory()) {
+                getPNGFiles(file, m);
+            }
+        }
+    }
+
+
     public String[] getPossibleKeys() {
         if (possibleKeys != null) {
             return possibleKeys;
@@ -75,25 +86,30 @@ public class ImageResourceLoader extends ResourceLoader<IrisImage> {
         Iris.debug("Building " + resourceTypeName + " Possibility Lists");
         KSet<String> m = new KSet<>();
 
+
         for (File i : getFolders()) {
-            for (File j : i.listFiles()) {
-                if (j.isFile() && j.getName().endsWith(".png")) {
-                    m.add(j.getName().replaceAll("\\Q.png\\E", ""));
-                } else if (j.isDirectory()) {
-                    for (File k : j.listFiles()) {
-                        if (k.isFile() && k.getName().endsWith(".png")) {
-                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.png\\E", ""));
-                        } else if (k.isDirectory()) {
-                            for (File l : k.listFiles()) {
-                                if (l.isFile() && l.getName().endsWith(".png")) {
-                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.png\\E", ""));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            getPNGFiles(i, m);
         }
+
+//        for (File i : getFolders()) {
+//            for (File j : i.listFiles()) {
+//                if (j.isFile() && j.getName().endsWith(".png")) {
+//                    m.add(j.getName().replaceAll("\\Q.png\\E", ""));
+//                } else if (j.isDirectory()) {
+//                    for (File k : j.listFiles()) {
+//                        if (k.isFile() && k.getName().endsWith(".png")) {
+//                            m.add(j.getName() + "/" + k.getName().replaceAll("\\Q.png\\E", ""));
+//                        } else if (k.isDirectory()) {
+//                            for (File l : k.listFiles()) {
+//                                if (l.isFile() && l.getName().endsWith(".png")) {
+//                                    m.add(j.getName() + "/" + k.getName() + "/" + l.getName().replaceAll("\\Q.png\\E", ""));
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
         KList<String> v = new KList<>(m);
         possibleKeys = v.toArray(new String[0]);

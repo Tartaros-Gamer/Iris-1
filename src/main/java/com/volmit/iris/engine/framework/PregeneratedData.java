@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import com.volmit.iris.util.hunk.Hunk;
 import lombok.Data;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.generator.ChunkGenerator;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -56,7 +55,7 @@ public class PregeneratedData {
         });
 
         if (postMod.get()) {
-            return () -> Hunk.view((ChunkGenerator.ChunkData) tc).insertSoftly(0, 0, 0, post, (b) -> b == null || B.isAirOrFluid(b));
+            return () -> Hunk.view(tc).insertSoftly(0, 0, 0, post, (b) -> b == null || B.isAirOrFluid(b));
         }
 
         return () -> {

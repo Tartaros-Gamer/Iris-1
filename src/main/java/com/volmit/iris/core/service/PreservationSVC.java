@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
 public class PreservationSVC implements IrisService {
     private final List<Thread> threads = new CopyOnWriteArrayList<>();
     private final List<ExecutorService> services = new CopyOnWriteArrayList<>();
-    private Looper dereferencer;
     private final List<MeteredCache> caches = new CopyOnWriteArrayList<>();
+    private Looper dereferencer;
 
     public void register(Thread t) {
         threads.add(t);

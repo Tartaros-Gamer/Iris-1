@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,14 +35,14 @@ import lombok.experimental.Accessors;
 @Data
 public class IrisObjectLimit {
     @MinNumber(0)
-    @MaxNumber(255)
+    @MaxNumber(1024)
     @Desc("The minimum height for placement (bottom of object)")
-    private int minimumHeight = 0;
+    private int minimumHeight = -2048; //TODO: WARNING HEIGHT
 
     @MinNumber(0)
-    @MaxNumber(255)
+    @MaxNumber(1024)
     @Desc("The maximum height for placement (top of object)")
-    private int maximumHeight = 255;
+    private int maximumHeight = 2048; //TODO: WARNING HEIGHT
 
     public boolean canPlace(int h, int l) {
         return h <= maximumHeight && l >= minimumHeight;

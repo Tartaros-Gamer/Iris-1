@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,10 +28,13 @@ import com.volmit.iris.engine.object.IrisObject;
 import com.volmit.iris.engine.object.IrisObjectPlacement;
 import com.volmit.iris.engine.object.IrisRegion;
 import com.volmit.iris.util.collection.KSet;
+import com.volmit.iris.util.context.ChunkContext;
+import com.volmit.iris.util.data.B;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.documentation.ChunkCoordinates;
 import com.volmit.iris.util.mantle.MantleFlag;
 import com.volmit.iris.util.math.RNG;
+import com.volmit.iris.util.matter.MatterStructurePOI;
 
 import java.util.Set;
 
@@ -41,7 +44,7 @@ public class MantleObjectComponent extends IrisMantleComponent {
     }
 
     @Override
-    public void generateLayer(MantleWriter writer, int x, int z) {
+    public void generateLayer(MantleWriter writer, int x, int z, ChunkContext context) {
         RNG rng = new RNG(Cache.key(x, z) + seed());
         int xxx = 8 + (x << 4);
         int zzz = 8 + (z << 4);
@@ -95,9 +98,12 @@ public class MantleObjectComponent extends IrisMantleComponent {
             int xx = rng.i(x, x + 15);
             int zz = rng.i(z, z + 15);
             int id = rng.i(0, Integer.MAX_VALUE);
-            v.place(xx, -1, zz, writer, objectPlacement, rng,
-                    getMantle().shouldReduce(getEngineMantle().getEngine()) ? null : (b) -> writer.setData(b.getX(), b.getY(), b.getZ(),
-                            v.getLoadKey() + "@" + id), null, getData());
+            v.place(xx, -1, zz, writer, objectPlacement, rng, (b, data) -> {
+                writer.setData(b.getX(), b.getY(), b.getZ(), v.getLoadKey() + "@" + id);
+                if (objectPlacement.isDolphinTarget() && objectPlacement.isUnderwater() && B.isStorageChest(data)) {
+                    writer.setData(b.getX(), b.getY(), b.getZ(), MatterStructurePOI.BURIED_TREASURE);
+                }
+            }, null, getData());
         }
     }
 

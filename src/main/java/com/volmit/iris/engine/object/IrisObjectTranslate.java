@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,7 @@
 
 package com.volmit.iris.engine.object;
 
-import com.volmit.iris.engine.object.annotations.Desc;
-import com.volmit.iris.engine.object.annotations.MaxNumber;
-import com.volmit.iris.engine.object.annotations.MinNumber;
-import com.volmit.iris.engine.object.annotations.Required;
-import com.volmit.iris.engine.object.annotations.Snippet;
+import com.volmit.iris.engine.object.annotations.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,9 +38,9 @@ public class IrisObjectTranslate {
     private int x = 0;
 
     @Required
-    @MinNumber(-256) // TODO: WARNING HEIGHT
-    @MaxNumber(256) // TODO: WARNING HEIGHT
-    @Desc("The x shift in blocks")
+    @MinNumber(-128) // TODO: WARNING HEIGHT
+    @MaxNumber(128) // TODO: WARNING HEIGHT
+    @Desc("The y shift in blocks")
     private int y = 0;
 
     @MinNumber(-128) // TODO: WARNING HEIGHT
@@ -54,7 +50,7 @@ public class IrisObjectTranslate {
 
     @MinNumber(-128) // TODO: WARNING HEIGHT
     @MaxNumber(128) // TODO: WARNING HEIGHT
-    @Desc("The x shift in blocks")
+    @Desc("The z shift in blocks")
     private int z = 0;
 
     public boolean canTranslate() {

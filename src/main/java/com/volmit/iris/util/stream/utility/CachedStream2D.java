@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,23 +20,24 @@ package com.volmit.iris.util.stream.utility;
 
 import com.volmit.iris.Iris;
 import com.volmit.iris.core.service.PreservationSVC;
-import com.volmit.iris.engine.data.cache.Cache;
 import com.volmit.iris.engine.framework.Engine;
 import com.volmit.iris.engine.framework.MeteredCache;
+import com.volmit.iris.util.cache.WorldCache2D;
 import com.volmit.iris.util.data.KCache;
 import com.volmit.iris.util.stream.BasicStream;
 import com.volmit.iris.util.stream.ProceduralStream;
 
 public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStream<T>, MeteredCache {
     private final ProceduralStream<T> stream;
-    private final KCache<Long, T> cache;
+    private final WorldCache2D<T> cache;
     private final Engine engine;
+    private final boolean chunked = true;
 
     public CachedStream2D(String name, Engine engine, ProceduralStream<T> stream, int size) {
         super();
         this.stream = stream;
         this.engine = engine;
-        cache = new KCache<>(k -> stream.get(Cache.keyX(k), Cache.keyZ(k)), size);
+        cache = new WorldCache2D<>(stream::get);
         Iris.service(PreservationSVC.class).registerCache(this);
     }
 
@@ -52,7 +53,8 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public T get(double x, double z) {
-        return cache.get(Cache.key((int) x, (int) z));
+        //return stream.get(x, z);
+        return cache.get((int) x, (int) z);
     }
 
     @Override
@@ -67,12 +69,12 @@ public class CachedStream2D<T> extends BasicStream<T> implements ProceduralStrea
 
     @Override
     public KCache<?, ?> getRawCache() {
-        return cache;
+        return null;
     }
 
     @Override
     public long getMaxSize() {
-        return cache.getMaxSize();
+        return 256 * 32;
     }
 
     @Override

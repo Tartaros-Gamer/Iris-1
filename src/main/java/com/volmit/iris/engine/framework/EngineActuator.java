@@ -1,6 +1,6 @@
 /*
  * Iris is a World Generator for Minecraft Bukkit Servers
- * Copyright (c) 2021 Arcane Arts (Volmit Software)
+ * Copyright (c) 2022 Arcane Arts (Volmit Software)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,11 @@
 
 package com.volmit.iris.engine.framework;
 
+import com.volmit.iris.util.context.ChunkContext;
 import com.volmit.iris.util.documentation.BlockCoordinates;
 import com.volmit.iris.util.hunk.Hunk;
 
 public interface EngineActuator<O> extends EngineComponent {
     @BlockCoordinates
-    void actuate(int x, int z, Hunk<O> output, boolean multicore);
+    void actuate(int x, int z, Hunk<O> output, boolean multicore, ChunkContext context);
 }
