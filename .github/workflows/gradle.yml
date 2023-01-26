@@ -24,12 +24,10 @@ jobs:
         cache: 'gradle'
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    - name: Setup
-      run: ./gradlew setup
     - name: Build with Gradle
       run: ./gradlew iris
     - name: upload artifacts
       uses: actions/upload-artifact@v2.2.4
       with:
         name: Iris-WorldGen-master
-        path: ./build/libs/*.jar
+        path: ./build/*.jar
